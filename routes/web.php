@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\SparepartController;
+use App\Http\Controllers\OthersettingsController;
 use Inertia\Inertia;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -38,6 +39,9 @@ Route::get('/tickets/{code}/approve', [TicketController::class, 'approve'])
 Route::get('/tickets/{code}/reject', [TicketController::class, 'reject'])
     ->name('tickets.reject');
 
+Route::get('/othersettings', [OthersettingsController::class, 'index'])
+    ->name('othersettings.index');
+    
 //Route with authentication and verification middleware
 Route::middleware(['auth', 'verified'])->group(function () {
     // Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
