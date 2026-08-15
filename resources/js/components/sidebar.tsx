@@ -23,7 +23,7 @@ const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Buat Tiket Perbaikan', href: '/tickets/create', icon: Pencil },
     { name: 'Daftar Pengerjaan', href: '/tickets', icon: Monitor },
-    { name: 'Tambah Stok Sparepart', href: '/spareparts/stock-in', icon: PackagePlus },
+    // { name: 'Tambah Stok Sparepart', href: '/spareparts/stock-in', icon: PackagePlus },
     { name: 'Stok Sparepart', href: '/spareparts', icon: Archive },
     { name: 'Daftar Mesin', href: '/machines', icon: Wrench },
     { name: 'Role Management', href: '/roles', icon: Users },
