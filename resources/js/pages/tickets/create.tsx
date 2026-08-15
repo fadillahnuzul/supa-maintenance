@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import { CalendarClock, FileText, ImageUp, Wrench, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -32,6 +33,11 @@ export default function CreateTicket() {
     const [priority, setPriority] = useState<Priority>('Standar');
     const [selectedMachine, setSelectedMachine] = useState('');
 
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        router.visit('/tickets');
+    };
+
     return (
         <div className="mx-auto flex w-full max-w-[980px] flex-col gap-6 px-2 py-4">
             {isModalOpen && (
@@ -39,7 +45,7 @@ export default function CreateTicket() {
                     <div className="relative h-[80vh] w-full max-w-[1180px] rounded-[22px] bg-[#f3f3f3] shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
                         <button
                             type="button"
-                            onClick={() => setIsModalOpen(false)}
+                            onClick={handleCloseModal}
                             className="absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-full text-3xl font-light text-[#1f2937] transition hover:bg-black/5"
                             aria-label="Tutup"
                         >
@@ -99,7 +105,7 @@ export default function CreateTicket() {
                                 <div className="flex justify-center pt-1">
                                     <button
                                         type="button"
-                                        onClick={() => setIsModalOpen(false)}
+                                        onClick={handleCloseModal}
                                         className="rounded-2xl bg-[#2f80ed] px-10 py-4 text-2xl font-extrabold text-white shadow-md transition hover:bg-[#2674d5]"
                                     >
                                         Lanjutkan
