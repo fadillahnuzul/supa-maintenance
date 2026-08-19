@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\BuildingModel;
-use App\Models\Maintenance\SparepartAuditLog;
 use App\Models\Sparepart\SparepartModel;
 use App\Models\Sparepart\SparepartStockLogModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class SparepartController extends Controller
@@ -256,32 +255,23 @@ class SparepartController extends Controller
             */
                 if ((float) $sparepart->stock > 0) {
                     SparepartStockLogModel::create([
-                        'sparepart_id' =>
-                        $sparepart->id,
+                        'sparepart_id' => $sparepart->id,
 
-                        'transaction_type' =>
-                        'initial',
+                        'transaction_type' => 'initial',
 
-                        'quantity_change' =>
-                        $sparepart->stock,
+                        'quantity_change' => $sparepart->stock,
 
-                        'stock_before' =>
-                        0,
+                        'stock_before' => 0,
 
-                        'stock_after' =>
-                        $sparepart->stock,
+                        'stock_after' => $sparepart->stock,
 
-                        'reference_type' =>
-                        null,
+                        'reference_type' => null,
 
-                        'reference_id' =>
-                        null,
+                        'reference_id' => null,
 
-                        'reference_code' =>
-                        null,
+                        'reference_code' => null,
 
-                        'note' =>
-                        'Stok awal sparepart',
+                        'note' => 'Stok awal sparepart',
 
                         /*
                      * User yang membuat stok awal.
@@ -321,35 +311,33 @@ class SparepartController extends Controller
 
         $histories =
             SparepartStockLogModel::query()
-            ->where(
-                'sparepart_id',
-                $sparepart->id
-            )
-            ->with([
-                'creator',
-            ])
-            ->latest('created_at')
-            ->limit(100)
-            ->get()
-            ->map(function (
-                SparepartStockLogModel $log
-            ) {
-                return $this
-                    ->stockLogResource(
-                        $log
-                    );
-            });
+                ->where(
+                    'sparepart_id',
+                    $sparepart->id
+                )
+                ->with([
+                    'creator',
+                ])
+                ->latest('created_at')
+                ->limit(100)
+                ->get()
+                ->map(function (
+                    SparepartStockLogModel $log
+                ) {
+                    return $this
+                        ->stockLogResource(
+                            $log
+                        );
+                });
 
         return Inertia::render(
             'spareparts/show',
             [
-                'sparepart' =>
-                $this->sparepartResource(
+                'sparepart' => $this->sparepartResource(
                     $sparepart
                 ),
 
-                'histories' =>
-                $histories,
+                'histories' => $histories,
             ]
         );
     }
@@ -376,13 +364,11 @@ class SparepartController extends Controller
         return Inertia::render(
             'spareparts/form',
             [
-                'sparepart' =>
-                $this->sparepartResource(
+                'sparepart' => $this->sparepartResource(
                     $sparepart
                 ),
 
-                'buildings' =>
-                $buildings,
+                'buildings' => $buildings,
             ]
         );
     }
@@ -485,6 +471,8 @@ class SparepartController extends Controller
                         'spareparts',
                         'public'
                     );
+            } else {
+                unset($validated['image']);
             }
 
             /*
@@ -627,11 +615,11 @@ class SparepartController extends Controller
             */
                 $lockedSparepart =
                     SparepartModel::query()
-                    ->whereKey(
-                        $sparepart->id
-                    )
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                        ->whereKey(
+                            $sparepart->id
+                        )
+                        ->lockForUpdate()
+                        ->firstOrFail();
 
                 $stockBefore =
                     (float) $lockedSparepart->stock;
@@ -646,11 +634,9 @@ class SparepartController extends Controller
             */
                 $quantityChange = match ($validated['type']) {
                     'reduction',
-                    'ticket'
-                    => -$quantity,
+                    'ticket' => -$quantity,
 
-                    default
-                    => $quantity,
+                    default => $quantity,
                 };
 
                 $stockAfter =
@@ -676,8 +662,7 @@ class SparepartController extends Controller
             |--------------------------------------------------------------------------
             */
                 $lockedSparepart->update([
-                    'stock' =>
-                    $stockAfter,
+                    'stock' => $stockAfter,
                 ]);
 
                 /*
@@ -686,32 +671,23 @@ class SparepartController extends Controller
             |--------------------------------------------------------------------------
             */
                 SparepartStockLogModel::create([
-                    'sparepart_id' =>
-                    $lockedSparepart->id,
+                    'sparepart_id' => $lockedSparepart->id,
 
-                    'transaction_type' =>
-                    $validated['type'],
+                    'transaction_type' => $validated['type'],
 
-                    'quantity_change' =>
-                    $quantityChange,
+                    'quantity_change' => $quantityChange,
 
-                    'stock_before' =>
-                    $stockBefore,
+                    'stock_before' => $stockBefore,
 
-                    'stock_after' =>
-                    $stockAfter,
+                    'stock_after' => $stockAfter,
 
-                    'reference_type' =>
-                    $validated['reference_type'] ?? null,
+                    'reference_type' => $validated['reference_type'] ?? null,
 
-                    'reference_id' =>
-                    $validated['reference_id'] ?? null,
+                    'reference_id' => $validated['reference_id'] ?? null,
 
-                    'reference_code' =>
-                    $validated['reference_code'] ?? null,
+                    'reference_code' => $validated['reference_code'] ?? null,
 
-                    'note' =>
-                    $validated['note']
+                    'note' => $validated['note']
                         ?? null,
 
                     /*
@@ -845,77 +821,59 @@ class SparepartController extends Controller
         SparepartModel $sparepart
     ): array {
         return [
-            'id' =>
-            $sparepart->id,
+            'id' => $sparepart->id,
 
-            'code' =>
-            $sparepart->code,
+            'code' => $sparepart->code,
 
-            'name' =>
-            $sparepart->name,
+            'name' => $sparepart->name,
 
-            'producer' =>
-            $sparepart->producer,
+            'producer' => $sparepart->producer,
 
-            'building_id' =>
-            $sparepart->building_id,
+            'building_id' => $sparepart->building_id,
 
-            'building' =>
-            $sparepart->building
+            'building' => $sparepart->building
                 ? [
-                    'id' =>
-                    $sparepart
+                    'id' => $sparepart
                         ->building
                         ->id,
 
-                    'name' =>
-                    $sparepart
+                    'name' => $sparepart
                         ->building
                         ->name,
                 ]
                 : null,
 
-            'minimum_stock' =>
-            (float) $sparepart
+            'minimum_stock' => (float) $sparepart
                 ->minimum_stock,
 
-            'stock' =>
-            (float) $sparepart->stock,
+            'stock' => (float) $sparepart->stock,
 
-            'unit' =>
-            $sparepart->unit,
+            'unit' => $sparepart->unit,
 
-            'delivery_status' =>
-            $sparepart
+            'delivery_status' => $sparepart
                 ->delivery_status,
 
-            'status' =>
-            $this->getStockStatus(
+            'status' => $this->getStockStatus(
                 $sparepart
             ),
 
-            'description' =>
-            $sparepart->description,
+            'description' => $sparepart->description,
 
-            'image' =>
-            $sparepart->image,
+            'image' => $sparepart->image,
 
-            'image_url' =>
-            $sparepart->image
+            'image_url' => $sparepart->image
                 ? Storage::disk('public')
-                ->url(
-                    $sparepart->image
-                )
+                    ->url(
+                        $sparepart->image
+                    )
                 : null,
 
-            'created_at' =>
-            $sparepart->created_at
+            'created_at' => $sparepart->created_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
 
-            'updated_at' =>
-            $sparepart->updated_at
+            'updated_at' => $sparepart->updated_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
@@ -931,50 +889,41 @@ class SparepartController extends Controller
         SparepartStockLogModel $log
     ): array {
         return [
-            'id' =>
-            $log->id,
+            'id' => $log->id,
 
-            'date' =>
-            $log->created_at
+            'date' => $log->created_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
 
-            'sparepart_id' =>
-            $log->sparepart_id,
+            'sparepart_id' => $log->sparepart_id,
 
-            'sparepart' =>
-            $log->sparepart
+            'sparepart' => $log->sparepart
                 ? trim(
-                    $log->sparepart->name .
+                    $log->sparepart->name.
                         (
                             $log->sparepart->producer
-                            ? ' - ' .
+                            ? ' - '.
                             $log->sparepart
-                            ->producer
+                                ->producer
                             : ''
                         )
                 )
                 : '-',
 
-            'type' =>
-            $this->stockTypeLabel(
+            'type' => $this->stockTypeLabel(
                 $log->transaction_type
             ),
 
-            'transaction_type' =>
-            $log->transaction_type,
+            'transaction_type' => $log->transaction_type,
 
-            'change' =>
-            (float) $log
+            'change' => (float) $log
                 ->quantity_change,
 
-            'stock_before' =>
-            (float) $log
+            'stock_before' => (float) $log
                 ->stock_before,
 
-            'new_stock' =>
-            (float) $log
+            'new_stock' => (float) $log
                 ->stock_after,
 
             /*
@@ -982,27 +931,20 @@ class SparepartController extends Controller
         | USER / CREATOR
         |--------------------------------------------------------------------------
         */
-            'created_by' =>
-            $log->created_by,
+            'created_by' => $log->created_by,
 
-            'officer' =>
-            $log->creator?->name
+            'officer' => $log->creator?->name
                 ?? '-',
 
-            'note' =>
-            $log->note,
+            'note' => $log->note,
 
-            'reference_type' =>
-            $log->reference_type,
+            'reference_type' => $log->reference_type,
 
-            'reference_id' =>
-            $log->reference_id,
+            'reference_id' => $log->reference_id,
 
-            'reference_code' =>
-            $log->reference_code,
+            'reference_code' => $log->reference_code,
 
-            'unit' =>
-            $log->sparepart?->unit
+            'unit' => $log->sparepart?->unit
                 ?? '',
         ];
     }
@@ -1040,23 +982,17 @@ class SparepartController extends Controller
         string $type
     ): string {
         return match ($type) {
-            'initial' =>
-            'Awal',
+            'initial' => 'Awal',
 
-            'addition' =>
-            'Tambah',
+            'addition' => 'Tambah',
 
-            'reduction' =>
-            'Kurang',
+            'reduction' => 'Kurang',
 
-            'ticket' =>
-            'Tiket',
+            'ticket' => 'Tiket',
 
-            'adjustment' =>
-            'Penyesuaian',
+            'adjustment' => 'Penyesuaian',
 
-            default =>
-            ucfirst($type),
+            default => ucfirst($type),
         };
     }
 
@@ -1069,37 +1005,27 @@ class SparepartController extends Controller
         SparepartModel $sparepart
     ): array {
         return [
-            'code' =>
-            $sparepart->code,
+            'code' => $sparepart->code,
 
-            'name' =>
-            $sparepart->name,
+            'name' => $sparepart->name,
 
-            'producer' =>
-            $sparepart->producer,
+            'producer' => $sparepart->producer,
 
-            'building_id' =>
-            $sparepart->building_id,
+            'building_id' => $sparepart->building_id,
 
-            'minimum_stock' =>
-            (float) $sparepart
+            'minimum_stock' => (float) $sparepart
                 ->minimum_stock,
 
-            'stock' =>
-            (float) $sparepart->stock,
+            'stock' => (float) $sparepart->stock,
 
-            'unit' =>
-            $sparepart->unit,
+            'unit' => $sparepart->unit,
 
-            'delivery_status' =>
-            $sparepart
+            'delivery_status' => $sparepart
                 ->delivery_status,
 
-            'description' =>
-            $sparepart->description,
+            'description' => $sparepart->description,
 
-            'image' =>
-            $sparepart->image,
+            'image' => $sparepart->image,
         ];
     }
 

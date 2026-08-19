@@ -20,18 +20,7 @@ import {
     useState,
 } from 'react';
 
-import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-function updateStatus(
-    id: number,
-    status: 'none' | 'on_delivery',
-) {
+function updateStatus(id: number, status: string) {
     router.patch(
         route('spareparts.update-delivery-status', id),
         {
@@ -39,7 +28,6 @@ function updateStatus(
         },
         {
             preserveScroll: true,
-            preserveState: true,
         },
     );
 }
@@ -798,61 +786,18 @@ export default function SparepartIndex({
                                                     {/* STATUS */}
 
                                                     <td className="px-3 py-2 text-center">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(event) =>
-                                                                        event.stopPropagation()
-                                                                    }
-                                                                    className="cursor-pointer rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                                                                    title="Klik untuk mengubah status delivery"
-                                                                >
-                                                                    <Badge
-                                                                        className={`min-w-[95px] justify-center border-0 px-3 py-2 text-sm font-medium hover:opacity-90 ${statusStyles[item.status]}`}
-                                                                    >
-                                                                        {item.status}
-                                                                    </Badge>
-                                                                </button>
-                                                            </DropdownMenuTrigger>
-
-                                                            <DropdownMenuContent
-                                                                align="center"
-                                                                onClick={(event) =>
-                                                                    event.stopPropagation()
-                                                                }
-                                                            >
-                                                                <DropdownMenuItem
-                                                                    disabled={
-                                                                        item.delivery_status ===
-                                                                        'on_delivery'
-                                                                    }
-                                                                    onClick={() =>
-                                                                        updateStatus(
-                                                                            item.id,
-                                                                            'on_delivery',
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    On Delivery
-                                                                </DropdownMenuItem>
-
-                                                                <DropdownMenuItem
-                                                                    disabled={
-                                                                        item.delivery_status ===
-                                                                        'none'
-                                                                    }
-                                                                    onClick={() =>
-                                                                        updateStatus(
-                                                                            item.id,
-                                                                            'none',
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Tidak On Delivery
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                        
+                                                        <span
+                                                            className={`inline-flex min-w-[95px] justify-center rounded-lg px-3 py-2 text-sm font-medium ${statusStyles[
+                                                                item
+                                                                    .status
+                                                                ]
+                                                                }`}
+                                                        >
+                                                            {
+                                                                item.status
+                                                            }
+                                                        </span>
                                                     </td>
 
                                                     {/* ACTION */}

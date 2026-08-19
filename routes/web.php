@@ -34,9 +34,15 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Sparepart routes
 Route::resource('/spareparts', SparepartController::class);
 
+Route::patch(
+    '/spareparts/{sparepart}/delivery-status',
+    [SparepartController::class, 'updateDeliveryStatus']
+)->name('spareparts.update-delivery-status');
+
 Route::post(
     '/spareparts/{sparepart}/stock',
-    [SparepartStockController::class, 'store'])
+    [SparepartStockController::class, 'store']
+)
     ->name('spareparts.stock.store');
 
 // Machine routes
@@ -94,4 +100,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
 });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';
