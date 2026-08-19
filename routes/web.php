@@ -6,6 +6,7 @@ use App\Http\Controllers\OthersettingsController;
 use App\Http\Controllers\OwnProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SparepartController;
+use App\Http\Controllers\SparepartStockController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -31,11 +32,12 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 // Sparepart routes
-Route::get('/spareparts/create', [SparepartController::class, 'create'])
-    ->name('spareparts.create');
+Route::resource('/spareparts', SparepartController::class);
 
-Route::get('/spareparts/edit/{code}', [SparepartController::class, 'edit'])
-    ->name('spareparts.edit');
+Route::post(
+    '/spareparts/{sparepart}/stock',
+    [SparepartStockController::class, 'store'])
+    ->name('spareparts.stock.store');
 
 // Machine routes
 // Route::get('/machines', [MachineController::class, 'index'])
@@ -92,4 +94,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

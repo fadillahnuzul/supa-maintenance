@@ -19,4 +19,12 @@ class BuildingModel extends Model
         'updated_at',
         'deleted_at',
     ];
+
+    public function spareparts()
+    {
+        return $this->hasMany(
+            \App\Models\Sparepart\SparepartModel::class,
+            'building_id'
+        );
+    }
 }
