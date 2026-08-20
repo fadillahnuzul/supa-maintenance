@@ -13,8 +13,10 @@ class RoleMiddleware
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
+        abort_unless($request->user()?->hasAnyRole($roles), 403);
+
         return $next($request);
     }
 }

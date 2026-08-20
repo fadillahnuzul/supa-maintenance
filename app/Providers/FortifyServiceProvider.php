@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -39,6 +41,26 @@ class FortifyServiceProvider extends ServiceProvider
     private function configureActions(): void
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
+        Fortify::authenticateUsing(function (Request $request): ?User {
+            $employeeNumber = str_replace('.', '', trim((string) $request->input('id_karyawan')));
+            $user = User::query()
+                ->whereRaw("REPLACE(id_karyawan, '.', '') = ?", [$employeeNumber])
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
+                return null;
+            }
+
+            if (Hash::needsRehash($user->password)) {
+                $user->forceFill([
+                    'password' => Hash::make($request->string('password')->toString()),
+                ])->saveQuietly();
+            }
+
+            return $user;
+        });
     }
 
     /**
@@ -71,7 +93,8 @@ class FortifyServiceProvider extends ServiceProvider
     {
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $employeeNumber = str_replace('.', '', Str::lower(trim((string) $request->input(Fortify::username()))));
+            $throttleKey = Str::transliterate($employeeNumber.'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
         });

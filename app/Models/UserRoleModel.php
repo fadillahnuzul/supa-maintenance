@@ -3,12 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UserRoleModel extends Model
 {
     use SoftDeletes;
+
+    public const ROLE_SUPERVISOR = 'Supervisor';
+
+    public const ROLE_OPERATIONAL = 'Operational';
+
+    public const ROLE_TEKNISI = 'Teknisi';
+
+    public const ROLE_ADMIN_SISTEM = 'Admin Sistem';
 
     protected $table = 'maintenance.user_role';
 
@@ -22,7 +30,7 @@ class UserRoleModel extends Model
         'is_active' => 'boolean',
     ];
 
-    public function employee()
+    public function employee(): BelongsTo
     {
         return $this->belongsTo(
             User::class,

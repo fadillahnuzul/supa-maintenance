@@ -1,8 +1,15 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
+
+test('user passwords use Argon2id', function () {
+    $user = User::factory()->create();
+
+    expect(Hash::info($user->password)['algoName'])->toBe('argon2id');
+});
 
 test('login screen can be rendered', function () {
     $response = $this->get(route('login'));
@@ -10,17 +17,22 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+test('guests cannot access the dashboard', function () {
+    $this->get(route('dashboard'))
+        ->assertRedirect(route('login'));
+});
+
+test('users can authenticate using either employee number format', function (string $employeeNumber) {
+    $user = User::factory()->create(['id_karyawan' => '2604010122']);
 
     $response = $this->post(route('login.store'), [
-        'email' => $user->email,
+        'id_karyawan' => $employeeNumber,
         'password' => 'password',
     ]);
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
-});
+})->with(['dotted' => '2604.01.0122', 'plain' => '2604010122']);
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
@@ -33,7 +45,7 @@ test('users with two factor enabled are redirected to two factor challenge', fun
     $user = User::factory()->withTwoFactor()->create();
 
     $response = $this->post(route('login'), [
-        'email' => $user->email,
+        'id_karyawan' => $user->id_karyawan,
         'password' => 'password',
     ]);
 
@@ -46,7 +58,7 @@ test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
     $this->post(route('login.store'), [
-        'email' => $user->email,
+        'id_karyawan' => $user->id_karyawan,
         'password' => 'wrong-password',
     ]);
 
@@ -66,10 +78,10 @@ test('users can logout', function () {
 test('users are rate limited', function () {
     $user = User::factory()->create();
 
-    RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
+    RateLimiter::increment(md5('login'.implode('|', ['2604010122', '127.0.0.1'])), amount: 5);
 
     $response = $this->post(route('login.store'), [
-        'email' => $user->email,
+        'id_karyawan' => '2604.01.0122',
         'password' => 'wrong-password',
     ]);
 

@@ -36,6 +36,14 @@ export default function Sidebar({
     setCollapsed,
 }: SidebarProps) {
     const { url } = usePage();
+    const { auth } = usePage().props;
+
+    const visibleMenuItems = menuItems.filter(
+        (item) =>
+            item.href !== '/roles' ||
+            auth.roles.includes('Admin Sistem') ||
+            auth.roles.includes('Supervisor'),
+    );
 
     return (
         <aside
@@ -85,7 +93,7 @@ export default function Sidebar({
 
             {/* Menu */}
             <nav className="flex-1">
-                {menuItems.map((item) => {
+                {visibleMenuItems.map((item) => {
                     const Icon = item.icon;
                     const active = (() => {
                         if (url === item.href) {
@@ -158,11 +166,11 @@ export default function Sidebar({
                 {!collapsed && (
                     <div>
                         <div className="font-semibold">
-                            Budi Santoso
+                            {auth.user?.name}
                         </div>
 
                         <div className="mt-1 inline-block rounded-full bg-[#32a936] px-3 py-0.5 text-xs">
-                            Operasional
+                            {auth.roles[0] ?? 'Pengguna'}
                         </div>
                     </div>
                 )}

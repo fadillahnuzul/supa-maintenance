@@ -5,7 +5,7 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
-        email: '',
+        id_karyawan: '',
         password: '',
         remember: false,
     });
@@ -141,13 +141,13 @@ export default function Login() {
                         ===================================================== */}
                         <form onSubmit={submit} className="space-y-5">
 
-                            {/* Email */}
+                            {/* ID Karyawan */}
                             <div>
                                 <label
-                                    htmlFor="email"
+                                    htmlFor="id_karyawan"
                                     className="mb-2 block text-sm font-semibold text-gray-800"
                                 >
-                                    Email
+                                    ID Karyawan
                                 </label>
 
                                 <div className="relative">
@@ -156,15 +156,15 @@ export default function Login() {
                                     </div>
 
                                     <input
-                                        id="email"
-                                        type="email"
-                                        autoComplete="email"
+                                        id="id_karyawan"
+                                        type="text"
+                                        autoComplete="username"
                                         autoFocus
-                                        value={data.email}
+                                        value={data.id_karyawan}
                                         onChange={(e) =>
-                                            setData('email', e.target.value)
+                                            setData('id_karyawan', e.target.value)
                                         }
-                                        placeholder="Masukkan email Anda"
+                                        placeholder="Contoh: 2604.01.0122 atau 2604010122"
                                         className="
                                             h-[52px]
                                             w-full
@@ -187,9 +187,9 @@ export default function Login() {
                                     />
                                 </div>
 
-                                {errors.email && (
+                                {errors.id_karyawan && (
                                     <p className="mt-2 text-sm text-red-500">
-                                        {errors.email}
+                                        {errors.id_karyawan}
                                     </p>
                                 )}
                             </div>
