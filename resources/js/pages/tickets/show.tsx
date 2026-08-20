@@ -1,931 +1,1525 @@
-import { Head, router, useForm } from '@inertiajs/react';
 import {
-    ChevronDown,
-    Circle,
+    Head,
+    router,
+    useForm,
+} from '@inertiajs/react';
+import {
+    ArrowLeft,
+    Calendar,
+    CheckCircle2,
+    Clock,
     Cog,
+    FileText,
+    History,
+    ImageIcon,
     MapPin,
-    Pencil,
-    Upload,
+    Package,
+    ShieldCheck,
+    UserRound,
+    UsersRound,
     Wrench,
     X,
+    XCircle,
 } from 'lucide-react';
-import { FormEvent, useMemo, useRef, useState } from 'react';
+import {
+    FormEvent,
+    useState,
+} from 'react';
+
+/*
+|--------------------------------------------------------------------------
+| TYPES
+|--------------------------------------------------------------------------
+*/
 
 type TicketStatus =
-    | 'Waiting Approval'
-    | 'Pending Approval'
-    | 'Assigned'
-    | 'Rejected'
-    | 'In Progress'
-    | 'Waiting Sparepart'
-    | 'Completed';
+    | 'pending_approval'
+    | 'rejected'
+    | 'assigned'
+    | 'in_progress'
+    | 'waiting_sparepart'
+    | 'waiting_verification'
+    | 'completed';
 
-type PriorityType = 'Darurat' | 'Standar' | 'Urgent' | 'Standard';
+type PriorityType =
+    | 'standard'
+    | 'urgent';
 
-type Sparepart = {
-    id: number;
-    code?: string;
-    name: string;
-    stock?: number;
-    unit?: string;
-};
-
-type UsedSparepart = {
+type Technician = {
     id: number;
     name: string;
-    quantity: number;
-    unit?: string;
+    is_pic: boolean;
 };
 
-type ProgressStatus = 'In Progress' | 'Waiting Sparepart' | 'Completed';
-
-type SparepartRow = {
-    id: string;
-    name: string;
-    quantity: string;
-};
-
-type RepairLog = {
+type TicketHistory = {
     id: number;
-    status: TicketStatus;
-    description: string;
+
+    action: string;
+    action_label: string;
+
+    description: string | null;
+
+    actor: string | null;
+
     created_at: string;
-    created_by?: string;
-};
-
-type Documentation = {
-    id: number;
-    image: string;
-    status: TicketStatus;
 };
 
 type Ticket = {
-    id: number | string;
-    code: string;
-    category: string;
-    detail: string;
-    location: string;
-    priority: PriorityType;
-    deadline?: string | null;
+    id: number;
 
-    reporter: string;
-    authorized_by?: string | null;
-    technician?: string | null;
-    member?: string | null;
+    code: string;
+
+    category: string;
+    category_label: string;
+
+    detail: string;
+
+    location: string | null;
+
+    priority: PriorityType;
+    priority_label: string;
+
+    reporter: string | null;
 
     status: TicketStatus;
+    status_label: string;
 
-    machine_code?: string | null;
-    machine_name?: string | null;
+    machine_code: string | null;
+    machine_name: string | null;
 
-    image?: string | null;
+    image: string | null;
 
-    repair_logs?: RepairLog[];
-    documentations?: Documentation[];
+    created_at: string | null;
+
+    approved_at: string | null;
+    approved_by: string | null;
+
+    rejected_at: string | null;
+    rejected_by: string | null;
+    rejection_reason: string | null;
+
+    deadline: string | null;
+
+    verification_at: string | null;
+    verified_by: string | null;
+
+    completed_at: string | null;
+
+    technicians: Technician[];
+
+    histories: TicketHistory[];
 };
 
 type Props = {
     ticket: Ticket;
-    spareparts?: Sparepart[];
+
+    can: {
+        update_progress: boolean;
+        verify: boolean;
+    };
 };
 
-const statusStyles: Record<TicketStatus, string> = {
-    'Waiting Approval': 'bg-amber-100 text-amber-700',
-    'Pending Approval': 'bg-amber-100 text-amber-700',
-    Assigned: 'bg-blue-100 text-blue-700',
-    Rejected: 'bg-red-100 text-red-700',
-    'In Progress': 'bg-amber-500 text-white',
-    'Waiting Sparepart': 'bg-orange-100 text-orange-700',
-    Completed: 'bg-green-100 text-green-700',
+/*
+|--------------------------------------------------------------------------
+| STATUS STYLE
+|--------------------------------------------------------------------------
+*/
+
+const statusStyles: Record<
+    TicketStatus,
+    string
+> = {
+    pending_approval:
+        'bg-yellow-100 text-yellow-700',
+
+    rejected:
+        'bg-red-100 text-red-700',
+
+    assigned:
+        'bg-blue-100 text-blue-700',
+
+    in_progress:
+        'bg-yellow-100 text-yellow-700',
+
+    waiting_sparepart:
+        'bg-orange-100 text-orange-700',
+
+    waiting_verification:
+        'bg-purple-100 text-purple-700',
+
+    completed:
+        'bg-green-100 text-green-700',
 };
 
-const timelineDotStyles: Record<TicketStatus, string> = {
-    'Waiting Approval': 'bg-amber-500',
-    'Pending Approval': 'bg-amber-500',
-    Assigned: 'bg-blue-500',
-    Rejected: 'bg-red-500',
-    'In Progress': 'bg-blue-500',
-    'Waiting Sparepart': 'bg-orange-500',
-    Completed: 'bg-green-500',
-};
-
-function StatusBadge({ status }: { status: TicketStatus }) {
-    return (
-        <span
-            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}
-        >
-            {status}
-        </span>
-    );
-}
-
-function InfoBox({
-    label,
-    children,
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className="rounded-xl border border-[#8b8b8b] bg-[#f7f7f7] px-4 py-3">
-            <div className="text-sm text-[#7a7a7a]">{label}</div>
-            <div className="font-semibold text-[#1f2937]">{children}</div>
-        </div>
-    );
-}
+/*
+|--------------------------------------------------------------------------
+| COMPONENT
+|--------------------------------------------------------------------------
+*/
 
 export default function TicketShow({
     ticket,
-    spareparts = [],
+    can,
 }: Props) {
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
-    const [sparepartRows, setSparepartRows] = useState<SparepartRow[]>([
-        { id: '', name: '', quantity: '' },
-    ]);
-    const [additionalSparepartRows, setAdditionalSparepartRows] = useState<
-        SparepartRow[]
-    >([{ id: '', name: '', quantity: '' }]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    /*
+    |--------------------------------------------------------------------------
+    | MODAL
+    |--------------------------------------------------------------------------
+    */
 
-    /**
-     * Sesuai requirement:
-     * Update Progress hanya muncul untuk:
-     * - Assigned
-     * - In Progress
-     * - Rejected
-     */
-    const canUpdateProgress = [
-        'Assigned',
-        'In Progress',
-        'Rejected',
-    ].includes(ticket.status);
+    const [
+        showProgressModal,
+        setShowProgressModal,
+    ] = useState(false);
 
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        reset,
-    } = useForm<{
-        progress_status: ProgressStatus | '';
+    const [
+        showVerifyModal,
+        setShowVerifyModal,
+    ] = useState(false);
+
+    const [
+        showRejectVerificationModal,
+        setShowRejectVerificationModal,
+    ] = useState(false);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROGRESS FORM
+    |--------------------------------------------------------------------------
+    */
+
+    const progressForm = useForm<{
+        status:
+            | 'in_progress'
+            | 'waiting_sparepart'
+            | 'waiting_verification';
+
         description: string;
-        evidence: File | null;
-        spareparts_used: UsedSparepart[];
     }>({
-        progress_status: '',
+        status: 'in_progress',
         description: '',
-        evidence: null,
-        spareparts_used: [],
     });
 
-    const addSparepartRow = (group: 'main' | 'additional') => {
-        if (group === 'main') {
-            setSparepartRows((current) => [
-                ...current,
-                { id: '', name: '', quantity: '' },
-            ]);
+    /*
+    |--------------------------------------------------------------------------
+    | VERIFY FORM
+    |--------------------------------------------------------------------------
+    */
 
-            return;
-        }
+    const verifyForm = useForm<{
+        note: string;
+    }>({
+        note: '',
+    });
 
-        setAdditionalSparepartRows((current) => [
-            ...current,
-            { id: '', name: '', quantity: '' },
-        ]);
+    /*
+    |--------------------------------------------------------------------------
+    | REJECT VERIFICATION FORM
+    |--------------------------------------------------------------------------
+    */
+
+    const rejectVerificationForm =
+        useForm<{
+            reason: string;
+        }>({
+            reason: '',
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | BACK
+    |--------------------------------------------------------------------------
+    */
+
+    const goBack = () => {
+        router.visit('/tickets');
     };
 
-    const updateSparepartRow = (
-        group: 'main' | 'additional',
-        index: number,
-        field: keyof SparepartRow,
-        value: string,
-    ) => {
-        const setter =
-            group === 'main' ? setSparepartRows : setAdditionalSparepartRows;
+    /*
+    |--------------------------------------------------------------------------
+    | OPEN PROGRESS
+    |--------------------------------------------------------------------------
+    */
 
-        setter((current) =>
-            current.map((row, rowIndex) =>
-                rowIndex === index ? { ...row, [field]: value } : row,
-            ),
+    const openProgressModal = () => {
+        progressForm.clearErrors();
+
+        /*
+         * Assigned pertama kali
+         * otomatis default ke In Progress.
+         */
+
+        if (
+            ticket.status === 'assigned'
+        ) {
+            progressForm.setData(
+                'status',
+                'in_progress',
+            );
+        }
+
+        /*
+         * Kalau sedang waiting sparepart,
+         * default ketika dibuka kembali
+         * adalah In Progress.
+         */
+
+        if (
+            ticket.status ===
+            'waiting_sparepart'
+        ) {
+            progressForm.setData(
+                'status',
+                'in_progress',
+            );
+        }
+
+        setShowProgressModal(true);
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBMIT PROGRESS
+    |--------------------------------------------------------------------------
+    */
+
+    const submitProgress = (
+        event: FormEvent,
+    ) => {
+        event.preventDefault();
+
+        /*
+         * Sesuai route Laravel:
+         *
+         * POST
+         * /tickets/{code}/progress
+         */
+
+        progressForm.post(
+            `/tickets/${encodeURIComponent(
+                ticket.code,
+            )}/progress`,
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+                    setShowProgressModal(
+                        false,
+                    );
+
+                    progressForm.reset();
+                },
+            },
         );
     };
 
-    const removeSparepartRow = (group: 'main' | 'additional', index: number) => {
-        const setter =
-            group === 'main' ? setSparepartRows : setAdditionalSparepartRows;
+    /*
+    |--------------------------------------------------------------------------
+    | VERIFY
+    |--------------------------------------------------------------------------
+    */
 
-        setter((current) => {
-            if (current.length === 1) {
-                return [{ id: '', name: '', quantity: '' }];
-            }
-
-            return current.filter((_, rowIndex) => rowIndex !== index);
-        });
-    };
-
-    const prepareSparepartRows = (rows: SparepartRow[], startIndex = 0) =>
-        rows.flatMap((row, index) => {
-            const quantity = Number(row.quantity);
-
-            if (!row.quantity || Number.isNaN(quantity) || quantity <= 0) {
-                return [];
-            }
-
-            const selectedSparepart = row.id
-                ? spareparts.find((item) => String(item.id) === row.id)
-                : undefined;
-            const name = (selectedSparepart?.name || row.name || '').trim();
-
-            if (!name) {
-                return [];
-            }
-
-            return [
-                {
-                    id: selectedSparepart?.id ?? startIndex + index + 1,
-                    name,
-                    quantity,
-                    unit: selectedSparepart?.unit || 'Pcs',
-                },
-            ];
-        });
-
-    const closeModal = () => {
-        setShowUpdateModal(false);
-        setSparepartRows([{ id: '', name: '', quantity: '' }]);
-        setAdditionalSparepartRows([{ id: '', name: '', quantity: '' }]);
-        reset();
-    };
-
-    const submitUpdate = (event: FormEvent) => {
+    const submitVerification = (
+        event: FormEvent,
+    ) => {
         event.preventDefault();
 
-        const preparedSpareparts = [
-            ...prepareSparepartRows(sparepartRows, 0),
-            ...prepareSparepartRows(additionalSparepartRows, sparepartRows.length),
-        ];
+        /*
+         * Sesuai route:
+         *
+         * POST
+         * /tickets/{code}/verify
+         */
 
-        setData('spareparts_used', preparedSpareparts);
+        verifyForm.post(
+            `/tickets/${encodeURIComponent(
+                ticket.code,
+            )}/verify`,
+            {
+                preserveScroll: true,
 
-        post(`/tickets/${ticket.id}/progress`, {
-            forceFormData: true,
-            preserveScroll: true,
-            data: {
-                ...data,
-                progress_status: data.progress_status,
-                spareparts_used: preparedSpareparts,
+                onSuccess: () => {
+                    setShowVerifyModal(
+                        false,
+                    );
+
+                    verifyForm.reset();
+                },
             },
-            onSuccess: () => {
-                setShowUpdateModal(false);
-                setSparepartRows([{ id: '', name: '', quantity: '' }]);
-                setAdditionalSparepartRows([{ id: '', name: '', quantity: '' }]);
-                reset();
-            },
-        });
+        );
     };
+
+    /*
+    |--------------------------------------------------------------------------
+    | REJECT VERIFICATION
+    |--------------------------------------------------------------------------
+    */
+
+    const submitRejectVerification = (
+        event: FormEvent,
+    ) => {
+        event.preventDefault();
+
+        /*
+         * POST
+         * /tickets/{code}/verification-reject
+         */
+
+        rejectVerificationForm.post(
+            `/tickets/${encodeURIComponent(
+                ticket.code,
+            )}/verification-reject`,
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+                    setShowRejectVerificationModal(
+                        false,
+                    );
+
+                    rejectVerificationForm.reset();
+                },
+            },
+        );
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | RENDER
+    |--------------------------------------------------------------------------
+    */
 
     return (
         <>
-            <Head title={`Detail Tiket ${ticket.code}`} />
+            <Head
+                title={`Detail ${ticket.code}`}
+            />
 
-            <div className="mx-auto w-full px-3 pb-6">
-                {/* =======================
-                    DETAIL TICKET CARD
-                ======================= */}
-                <section className="overflow-hidden rounded-[20px] bg-white shadow-md">
-                    {/* Header */}
-                    <div className="flex h-[52px] items-center bg-black px-6 text-white">
-                        <Wrench size={20} className="mr-2" />
-                        <h1 className="text-lg font-semibold">
-                            Detail Tiket Perbaikan
+            <div className="mx-auto w-full px-3 pb-8">
+                {/* ========================================================
+                    PAGE HEADER
+                ======================================================== */}
+
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <button
+                            type="button"
+                            onClick={goBack}
+                            className="mb-2 inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 transition hover:text-gray-800"
+                        >
+                            <ArrowLeft
+                                size={17}
+                            />
+
+                            Kembali ke Daftar
+                        </button>
+
+                        <h1 className="text-2xl font-extrabold text-gray-900">
+                            Detail Tiket
                         </h1>
                     </div>
 
-                    <div className="p-5">
-                        <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-                            {/* LEFT SIDE */}
+                    <span
+                        className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
+                            statusStyles[
+                                ticket.status
+                            ]
+                        }`}
+                    >
+                        {ticket.status_label}
+                    </span>
+                </div>
+
+                {/* ========================================================
+                    MAIN DETAIL
+                ======================================================== */}
+
+                <div className="overflow-hidden rounded-[20px] bg-white shadow-md">
+                    {/* BLACK HEADER */}
+
+                    <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-3 bg-black px-6 py-3 text-white">
+                        <div className="flex items-center gap-2">
+                            <Wrench
+                                size={20}
+                            />
+
+                            <span className="font-semibold">
+                                Informasi Tiket
+                            </span>
+                        </div>
+
+                        <div className="text-sm">
+                            <span className="text-gray-400">
+                                Nomor Tiket:{' '}
+                            </span>
+
+                            <span className="font-bold">
+                                {ticket.code}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        {/* ====================================================
+                            TOP SECTION
+                        ==================================================== */}
+
+                        <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+                            {/* PHOTO */}
+
                             <div>
-                                <div className="overflow-hidden rounded-xl bg-gray-100">
+                                <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
                                     {ticket.image ? (
                                         <img
-                                            src={ticket.image}
-                                            alt={`Tiket ${ticket.code}`}
-                                            className="h-[205px] w-full object-cover"
+                                            src={
+                                                ticket.image
+                                            }
+                                            alt={
+                                                ticket.code
+                                            }
+                                            className="h-[270px] w-full object-cover"
                                         />
                                     ) : (
-                                        <div className="flex h-[205px] items-center justify-center text-gray-400">
-                                            Tidak ada foto
+                                        <div className="flex h-[270px] flex-col items-center justify-center gap-2 text-gray-400">
+                                            <ImageIcon
+                                                size={
+                                                    35
+                                                }
+                                            />
+
+                                            <span className="text-sm">
+                                                Tidak
+                                                ada foto
+                                                kerusakan
+                                            </span>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="mt-4 rounded-xl border border-[#8b8b8b] bg-[#f8f8f8] p-4">
-                                    <div className="mb-1 text-sm text-gray-600">
-                                        Status Terkini
-                                    </div>
+                                {/* CREATED */}
 
-                                    <StatusBadge status={ticket.status} />
+                                <div className="mt-3 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                    <Clock
+                                        size={18}
+                                        className="mt-0.5 text-gray-500"
+                                    />
 
-                                    <div className="mt-3 space-y-0.5 text-sm leading-tight text-gray-600">
-                                        <p>
-                                            <strong>Diajukan oleh:</strong>{' '}
-                                            {ticket.reporter}
-                                        </p>
+                                    <div>
+                                        <div className="text-xs text-gray-500">
+                                            Tiket
+                                            Dibuat
+                                        </div>
 
-                                        <p>
-                                            <strong>Otorisasi oleh:</strong>{' '}
-                                            {ticket.authorized_by || '-'}
-                                        </p>
-
-                                        <p>
-                                            <strong>Teknisi Utama (PIC):</strong>{' '}
-                                            <span className="text-green-600">
-                                                {ticket.technician || '-'}
-                                            </span>
-                                        </p>
-
-                                        <p>
-                                            <strong>Anggota Tim:</strong>{' '}
-                                            {ticket.member || '-'}
-                                        </p>
+                                        <div className="mt-0.5 text-sm font-semibold text-gray-800">
+                                            {ticket.created_at ??
+                                                '-'}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* RIGHT SIDE */}
-                            <div className="flex flex-col">
-                                <div className="grid gap-4 md:grid-cols-3">
-                                    <InfoBox label="Kategori">
-                                        {ticket.category}
+                            {/* INFORMATION */}
+
+                            <div>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    <InfoBox
+                                        label="Pelapor"
+                                        icon={
+                                            <UserRound
+                                                size={
+                                                    16
+                                                }
+                                            />
+                                        }
+                                    >
+                                        {ticket.reporter ??
+                                            '-'}
                                     </InfoBox>
 
-                                    <InfoBox label="Prioritas">
+                                    <InfoBox
+                                        label="Kategori"
+                                        icon={
+                                            <Wrench
+                                                size={
+                                                    16
+                                                }
+                                            />
+                                        }
+                                    >
+                                        {
+                                            ticket.category_label
+                                        }
+                                    </InfoBox>
+
+                                    <InfoBox
+                                        label="Prioritas"
+                                        icon={
+                                            <Clock
+                                                size={
+                                                    16
+                                                }
+                                            />
+                                        }
+                                    >
                                         <span
                                             className={
-                                                ticket.priority === 'Darurat' ||
-                                                    ticket.priority === 'Urgent'
-                                                    ? 'text-red-600'
+                                                ticket.priority ===
+                                                'urgent'
+                                                    ? 'font-bold text-red-600'
                                                     : ''
                                             }
                                         >
-                                            {ticket.priority}
-                                        </span>
-                                    </InfoBox>
-
-                                    <InfoBox label="Deadline">
-                                        <span className="text-red-600">
-                                            {ticket.deadline || '-'}
+                                            {
+                                                ticket.priority_label
+                                            }
                                         </span>
                                     </InfoBox>
                                 </div>
 
-                                <div className="mt-3">
-                                    <InfoBox label="Deskripsi Kerusakan">
-                                        {ticket.detail}
-                                    </InfoBox>
+                                {/* DESCRIPTION */}
+
+                                <div className="mt-3 rounded-xl border border-gray-300 bg-gray-50 px-4 py-4">
+                                    <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+                                        <FileText
+                                            size={
+                                                15
+                                            }
+                                        />
+
+                                        Deskripsi
+                                        Kerusakan /
+                                        Pekerjaan
+                                    </div>
+
+                                    <div className="whitespace-pre-line text-sm font-medium leading-6 text-gray-800">
+                                        {
+                                            ticket.detail
+                                        }
+                                    </div>
                                 </div>
 
-                                <div className="mt-3 rounded-xl border border-[#68b59b] bg-[#d9eee7] px-5 py-3 text-[#185c49]">
-                                    <div className="text-sm text-gray-500">
-                                        Lokasi Kerusakan
+                                {/* LOCATION */}
+
+                                <div className="mt-3 rounded-xl border border-[#68b59b] bg-[#d9eee7] px-5 py-4 text-[#185c49]">
+                                    <div className="mb-2 text-xs text-gray-500">
+                                        Lokasi
+                                        Kerusakan
                                     </div>
 
                                     {(ticket.machine_code ||
                                         ticket.machine_name) && (
-                                            <div className="flex items-center gap-2 font-bold">
-                                                <Cog size={17} />
+                                        <div className="flex items-start gap-2 text-sm font-bold">
+                                            <Cog
+                                                size={
+                                                    17
+                                                }
+                                                className="mt-0.5 shrink-0"
+                                            />
 
-                                                <span>
-                                                    {ticket.machine_code}
-                                                    {ticket.machine_code &&
-                                                        ticket.machine_name &&
-                                                        ' - '}
-                                                    {ticket.machine_name}
-                                                </span>
-                                            </div>
-                                        )}
+                                            <span>
+                                                {ticket.machine_code ??
+                                                    ''}
 
-                                    <div className="flex items-center gap-2 font-bold">
-                                        <MapPin size={17} />
-                                        {ticket.location}
+                                                {ticket.machine_code &&
+                                                    ticket.machine_name
+                                                    ? ' - '
+                                                    : ''}
+
+                                                {ticket.machine_name ??
+                                                    ''}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-1 flex items-center gap-2 text-sm font-bold">
+                                        <MapPin
+                                            size={
+                                                17
+                                            }
+                                        />
+
+                                        {ticket.location ??
+                                            '-'}
                                     </div>
                                 </div>
 
-                                {/* UPDATE BUTTON */}
-                                {canUpdateProgress && (
-                                    <div className="mt-auto flex justify-end pt-8">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowUpdateModal(true)
+                                {/* DEADLINE */}
+
+                                {ticket.deadline && (
+                                    <div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+                                        <Calendar
+                                            size={
+                                                19
                                             }
-                                            className="flex items-center gap-3 rounded-xl bg-[#2faa32] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#249428]"
-                                        >
-                                            Update Progress
-                                            <Pencil size={21} />
-                                        </button>
+                                            className="text-orange-600"
+                                        />
+
+                                        <div>
+                                            <div className="text-xs text-gray-500">
+                                                Deadline
+                                                Pengerjaan
+                                            </div>
+
+                                            <div className="font-bold text-orange-700">
+                                                {
+                                                    ticket.deadline
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         </div>
-                    </div>
-                </section>
 
-                {/* =======================
-                    HISTORY SECTION
-                ======================= */}
-                <section className="mt-4 rounded-[20px] bg-white p-6 shadow-md">
-                    <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-                        {/* LOG HISTORY */}
-                        <div className="rounded-xl border border-gray-200 p-5 shadow-sm">
-                            <h2 className="mb-5 text-xs font-bold uppercase text-gray-500">
-                                Riwayat Log Upaya Perbaikan
-                            </h2>
+                        {/* ====================================================
+                            TECHNICIAN
+                        ==================================================== */}
 
-                            {ticket.repair_logs?.length ? (
-                                <div className="relative ml-3 border-l-2 border-gray-200 pl-7">
-                                    {ticket.repair_logs.map((log) => (
-                                        <div
-                                            key={log.id}
-                                            className="relative mb-6 last:mb-0"
-                                        >
-                                            <div
-                                                className={`absolute -left-[36px] top-1 h-4 w-4 rounded-full ring-4 ring-white ${timelineDotStyles[log.status]}`}
-                                            />
-
-                                            <div className="text-[11px] font-semibold text-gray-500">
-                                                {log.created_at}
-                                            </div>
-
-                                            <div
-                                                className={`text-sm font-bold ${log.status === 'Completed'
-                                                    ? 'text-green-600'
-                                                    : log.status ===
-                                                        'Waiting Sparepart'
-                                                        ? 'text-orange-500'
-                                                        : log.status ===
-                                                            'Rejected'
-                                                            ? 'text-red-600'
-                                                            : 'text-blue-600'
-                                                    }`}
-                                            >
-                                                {log.status}
-                                            </div>
-
-                                            {log.created_by && (
-                                                <div className="text-xs text-gray-600">
-                                                    {log.created_by}
-                                                </div>
-                                            )}
-
-                                            <p className="mt-1 text-xs text-gray-600">
-                                                {log.description}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="py-10 text-center text-sm text-gray-400">
-                                    Belum ada riwayat perbaikan.
-                                </div>
-                            )}
-                        </div>
-
-                        {/* DOCUMENTATION */}
-                        <div className="min-h-[265px] rounded-xl border border-[#8b8b8b] bg-[#f9fafb] p-5">
-                            <h2 className="mb-3 text-sm text-gray-500">
-                                Dokumentasi Proses
-                            </h2>
-
-                            {ticket.documentations?.length ? (
-                                <div className="flex flex-wrap gap-4">
-                                    {ticket.documentations.map((doc) => (
-                                        <div
-                                            key={doc.id}
-                                            className="flex flex-col items-center"
-                                        >
-                                            <img
-                                                src={doc.image}
-                                                alt="Dokumentasi proses"
-                                                className="h-[145px] w-[175px] rounded-sm object-cover"
-                                            />
-
-                                            <div className="mt-2">
-                                                <StatusBadge
-                                                    status={doc.status}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex h-[180px] items-center justify-center text-sm text-gray-400">
-                                    Belum ada dokumentasi proses.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            {/* ===========================
-                UPDATE PROGRESS MODAL
-            =========================== */}
-            {showUpdateModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-                    onMouseDown={(event) => {
-                        if (event.currentTarget === event.target) {
-                            closeModal();
-                        }
-                    }}
-                >
-                    <form
-                        onSubmit={submitUpdate}
-                        className="relative max-h-[95vh] w-full max-w-[1200px] overflow-y-auto rounded-[18px] border border-[#185c49] bg-[#f8fafc] p-8 shadow-2xl"
-                    >
-                        {/* Close */}
-                        <button
-                            type="button"
-                            onClick={closeModal}
-                            className="absolute right-4 top-3 text-black transition hover:text-red-600"
-                        >
-                            <X size={22} />
-                        </button>
-
-                        <h2 className="mb-8 text-center text-3xl font-bold text-black">
-                            Update Laporan Perbaikan
-                        </h2>
-
-                        {/* COMPLETED */}
-                        <div className="mb-4 flex justify-end gap-3">
-                            {(
-                                ['In Progress', 'Waiting Sparepart', 'Completed'] as ProgressStatus[]
-                            ).map((status) => (
-                                <label
-                                    key={status}
-                                    className="flex min-w-[370px] cursor-pointer items-center gap-5 rounded-xl border border-[#8b8b8b] bg-white px-6 py-4 text-xl text-gray-800 font-bold"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={data.progress_status === status}
-                                        onChange={() =>
-                                            setData(
-                                                'progress_status',
-                                                data.progress_status === status
-                                                    ? ''
-                                                    : status,
-                                            )
-                                        }
-                                        className="h-6 w-6"
-                                    />
-
-                                    {status === 'Waiting Sparepart'
-                                        ? 'Waiting Sparepart'
-                                        : status === 'Completed'
-                                            ? 'Selesai'
-                                            : 'In Progress'}
-                                </label>
-                            ))}
-                        </div>
-
-                        {/* SPAREPART */}
-                        <div className="mb-4">
-                            <label className="mb-2 block text-lg font-medium text-gray-800">
-                                Sparepart yang digunakan
-                            </label>
-
-                            <div className="space-y-3">
-                                {sparepartRows.map((row, index) => (
-                                    <div
-                                        key={`sparepart-row-${index}`}
-                                        className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_120px_48px]"
-                                    >
-                                        <div className="relative">
-                                            <select
-                                                id={`sparepart-select-${index}`}
-                                                value={row.id}
-                                                onChange={(event) =>
-                                                    updateSparepartRow(
-                                                        'main',
-                                                        index,
-                                                        'id',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                className="h-[64px] w-full appearance-none rounded-xl border border-[#8b8b8b] bg-white px-6 pr-12 text-lg outline-none focus:border-green-600 text-gray-600"
-                                            >
-                                                <option value="" className="text-gray-400">
-                                                    -- Pilih Sparepart --
-                                                </option>
-
-                                                {spareparts.map((sparepart) => (
-                                                    <option
-                                                        key={sparepart.id}
-                                                        value={sparepart.id}
-                                                    >
-                                                        {sparepart.code
-                                                            ? `${sparepart.code} - `
-                                                            : ''}
-                                                        {sparepart.name}
-                                                        {sparepart.stock !== undefined
-                                                            ? ` (Stock: ${sparepart.stock})`
-                                                            : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-
-                                            <ChevronDown
-                                                size={28}
-                                                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-                                            />
-                                        </div>
-
-                                        <input
-                                            id={`sparepart-quantity-${index}`}
-                                            type="number"
-                                            min="1"
-                                            value={row.quantity}
-                                            onChange={(event) =>
-                                                updateSparepartRow(
-                                                    'main',
-                                                    index,
-                                                    'quantity',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            placeholder="Jumlah.."
-                                            className="h-[64px] rounded-xl border border-[#8b8b8b] bg-white px-5 text-lg outline-none focus:border-green-600 text-gray-800"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                addSparepartRow('main')
-                                            }
-                                            className="h-[64px] rounded-xl bg-blue-500 px-6 text-lg font-bold text-white transition hover:bg-blue-600"
-                                        >
-                                            Tambah
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeSparepartRow('main', index)
-                                            }
-                                            className="h-[64px] rounded-xl border border-red-200 bg-red-50 px-4 text-red-600 transition hover:bg-red-100"
-                                            aria-label="Hapus sparepart"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                ))}
-
-                            </div>
-
-                            {/* ADDED SPAREPART */}
-                            {data.spareparts_used.length > 0 && (
-                                <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                                    {data.spareparts_used.map(
-                                        (sparepart, index) => (
-                                            <div
-                                                key={`${sparepart.id}-${index}`}
-                                                className="flex items-center justify-between border-b border-gray-100 px-4 py-3 last:border-b-0"
-                                            >
-                                                <div>
-                                                    <span className="font-semibold">
-                                                        {sparepart.name}
-                                                    </span>
-
-                                                    <span className="ml-3 text-sm text-gray-500">
-                                                        {sparepart.quantity}{' '}
-                                                        {sparepart.unit || ''}
-                                                    </span>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setData(
-                                                            'spareparts_used',
-                                                            data.spareparts_used.filter(
-                                                                (_, i) => i !== index,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="rounded-lg p-1 text-red-500 hover:bg-red-50"
-                                                >
-                                                    <X size={18} />
-                                                </button>
-                                            </div>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ADDITIONAL SPAREPART */}
-                        <div className="mb-4">
-                            <label className="mb-2 block text-lg font-medium text-gray-800">
-                                Sparepart Tambahan
-                            </label>
-
-                            <div className="space-y-3">
-                                {additionalSparepartRows.map((row, index) => (
-                                    <div
-                                        key={`additional-sparepart-row-${index}`}
-                                        className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_120px_48px]"
-                                    >
-                                        <input
-                                            id={`additional-sparepart-name-${index}`}
-                                            type="text"
-                                            value={row.name}
-                                            onChange={(event) =>
-                                                updateSparepartRow(
-                                                    'additional',
-                                                    index,
-                                                    'name',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            placeholder="Sparepart custom"
-                                            className="h-[64px] rounded-xl border border-[#8b8b8b] bg-white px-5 text-lg outline-none focus:border-green-600 text-gray-800"
-                                        />
-
-                                        <input
-                                            id={`additional-sparepart-quantity-${index}`}
-                                            type="number"
-                                            min="1"
-                                            value={row.quantity}
-                                            onChange={(event) =>
-                                                updateSparepartRow(
-                                                    'additional',
-                                                    index,
-                                                    'quantity',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            placeholder="Jumlah.."
-                                            className="h-[64px] rounded-xl border border-[#8b8b8b] bg-white px-5 text-lg outline-none focus:border-green-600 text-gray-800"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                addSparepartRow('additional')
-                                            }
-                                            className="h-[64px] rounded-xl bg-blue-500 px-6 py-3 text-lg font-bold text-white transition hover:bg-blue-600"
-                                        >
-                                            Tambah
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeSparepartRow(
-                                                    'additional',
-                                                    index,
-                                                )
-                                            }
-                                            className="h-[64px] rounded-xl border border-red-200 bg-red-50 px-4 text-red-600 transition hover:bg-red-100"
-                                            aria-label="Hapus sparepart"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                ))}
-
-                            </div>
-
-                            {/* ADDITIONAL SPAREPART */}
-                            {data.spareparts_used.length > 0 && (
-                                <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                                    {data.spareparts_used.map(
-                                        (sparepart, index) => (
-                                            <div
-                                                key={`${sparepart.id}-${index}`}
-                                                className="flex items-center justify-between border-b border-gray-100 px-4 py-3 last:border-b-0"
-                                            >
-                                                <div>
-                                                    <span className="font-semibold">
-                                                        {sparepart.name}
-                                                    </span>
-
-                                                    <span className="ml-3 text-sm text-gray-500">
-                                                        {sparepart.quantity}{' '}
-                                                        {sparepart.unit || ''}
-                                                    </span>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setData(
-                                                            'spareparts_used',
-                                                            data.spareparts_used.filter(
-                                                                (_, i) => i !== index,
-                                                            ),
-                                                        )
-                                                    }
-                                                    className="rounded-lg p-1 text-red-500 hover:bg-red-50"
-                                                >
-                                                    <X size={18} />
-                                                </button>
-                                            </div>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* DESCRIPTION */}
-                        <div className="mb-4">
-                            <label className="mb-2 block text-lg font-medium text-gray-800">
-                                Deskripsi
-                            </label>
-
-                            <textarea
-                                rows={3}
-                                value={data.description}
-                                onChange={(event) =>
-                                    setData(
-                                        'description',
-                                        event.target.value,
-                                    )
-                                }
-                                placeholder="Deskripsi Perbaikan.."
-                                className="w-full resize-y rounded-xl border border-[#8b8b8b] bg-white px-5 py-4 text-lg text-gray-800 outline-none focus:border-green-600"
-                            />
-
-                            {errors.description && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.description}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* UPLOAD */}
-                        <div className="">
-                            <label className="mb-2 block text-lg font-medium text-gray-800">
-                                Unggah Bukti
-                            </label>
-
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(event) =>
-                                    setData(
-                                        'evidence',
-                                        event.target.files?.[0] ?? null,
-                                    )
-                                }
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    fileInputRef.current?.click()
-                                }
-                                className="flex min-h-[75px] w-full flex-col items-center justify-center rounded-xl border border-[#8b8b8b] bg-white transition hover:bg-gray-50"
-                            >
-                                <Upload
-                                    size={30}
-                                    strokeWidth={2.5}
-                                    className="text-gray-500"
+                        <div className="mt-6 border-t border-gray-200 pt-6">
+                            <div className="mb-3 flex items-center gap-2">
+                                <UsersRound
+                                    size={19}
                                 />
 
-                                {data.evidence && (
-                                    <span className="mt-2 text-sm font-medium text-gray-600">
-                                        {data.evidence.name}
-                                    </span>
-                                )}
-                            </button>
+                                <h2 className="font-bold text-gray-900">
+                                    Teknisi
+                                    Pengerjaan
+                                </h2>
+                            </div>
 
-                            {errors.evidence && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.evidence}
-                                </p>
+                            {ticket.technicians
+                                .length > 0 ? (
+                                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                                    {ticket.technicians.map(
+                                        (
+                                            technician,
+                                        ) => (
+                                            <div
+                                                key={
+                                                    technician.id
+                                                }
+                                                className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+                                            >
+                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                                                    <UserRound
+                                                        size={
+                                                            19
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <div className="font-semibold text-gray-800">
+                                                        {
+                                                            technician.name
+                                                        }
+                                                    </div>
+
+                                                    <div className="text-xs text-gray-500">
+                                                        {technician.is_pic
+                                                            ? 'PIC Teknisi'
+                                                            : 'Teknisi'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center text-sm text-gray-400">
+                                    Teknisi belum
+                                    ditentukan.
+                                </div>
                             )}
                         </div>
 
-                        {/* SUBMIT */}
-                        <div className="mt-8 flex justify-end">
+                        {/* ====================================================
+                            REJECT INFORMATION
+                        ==================================================== */}
+
+                        {ticket.status ===
+                            'rejected' && (
+                            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                                <div className="flex items-center gap-2 font-bold text-red-700">
+                                    <XCircle
+                                        size={20}
+                                    />
+
+                                    Tiket Ditolak
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                    <InfoBox label="Ditolak Oleh">
+                                        {ticket.rejected_by ??
+                                            '-'}
+                                    </InfoBox>
+
+                                    <InfoBox label="Waktu Penolakan">
+                                        {ticket.rejected_at ??
+                                            '-'}
+                                    </InfoBox>
+                                </div>
+
+                                <div className="mt-3 rounded-lg bg-white px-4 py-3">
+                                    <div className="text-xs text-gray-500">
+                                        Alasan
+                                    </div>
+
+                                    <div className="mt-1 text-sm font-medium text-red-700">
+                                        {ticket.rejection_reason ??
+                                            '-'}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ====================================================
+                            COMPLETED
+                        ==================================================== */}
+
+                        {ticket.status ===
+                            'completed' && (
+                            <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5">
+                                <div className="flex items-center gap-2 font-bold text-green-700">
+                                    <CheckCircle2
+                                        size={20}
+                                    />
+
+                                    Pekerjaan
+                                    Selesai dan
+                                    Terverifikasi
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                    <InfoBox label="Diverifikasi Oleh">
+                                        {ticket.verified_by ??
+                                            '-'}
+                                    </InfoBox>
+
+                                    <InfoBox label="Waktu Verifikasi">
+                                        {ticket.verification_at ??
+                                            '-'}
+                                    </InfoBox>
+
+                                    <InfoBox label="Selesai">
+                                        {ticket.completed_at ??
+                                            '-'}
+                                    </InfoBox>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ====================================================
+                            ACTION
+                        ==================================================== */}
+
+                        <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
                             <button
-                                type="submit"
-                                disabled={processing}
-                                className="min-w-[250px] rounded-xl bg-[#2faa32] px-8 py-4 text-2xl font-bold text-white transition hover:bg-[#249428] disabled:cursor-not-allowed disabled:opacity-50"
+                                type="button"
+                                onClick={goBack}
+                                className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
                             >
-                                {processing
-                                    ? 'Menyimpan...'
-                                    : 'Simpan Log'}
+                                Kembali
                             </button>
+
+                            {/* UPDATE PROGRESS */}
+
+                            {can.update_progress &&
+                                [
+                                    'assigned',
+                                    'in_progress',
+                                    'waiting_sparepart',
+                                ].includes(
+                                    ticket.status,
+                                ) && (
+                                    <button
+                                        type="button"
+                                        onClick={
+                                            openProgressModal
+                                        }
+                                        className="inline-flex items-center gap-2 rounded-xl bg-[#22c55e] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#16a34a]"
+                                    >
+                                        <Wrench
+                                            size={
+                                                18
+                                            }
+                                        />
+
+                                        Update
+                                        Progress
+                                    </button>
+                                )}
+
+                            {/* VERIFICATION */}
+
+                            {can.verify &&
+                                ticket.status ===
+                                    'waiting_verification' && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                rejectVerificationForm.reset();
+                                                rejectVerificationForm.clearErrors();
+
+                                                setShowRejectVerificationModal(
+                                                    true,
+                                                );
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+                                        >
+                                            <XCircle
+                                                size={
+                                                    18
+                                                }
+                                            />
+
+                                            Tolak
+                                            Verifikasi
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                verifyForm.reset();
+                                                verifyForm.clearErrors();
+
+                                                setShowVerifyModal(
+                                                    true,
+                                                );
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-purple-700"
+                                        >
+                                            <ShieldCheck
+                                                size={
+                                                    18
+                                                }
+                                            />
+
+                                            Verifikasi
+                                            Selesai
+                                        </button>
+                                    </>
+                                )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ========================================================
+                    HISTORY
+                ======================================================== */}
+
+                <div className="mt-5 overflow-hidden rounded-[20px] bg-white shadow-md">
+                    <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+                        <History
+                            size={20}
+                        />
+
+                        <h2 className="font-bold text-gray-900">
+                            Histori Tiket
+                        </h2>
+                    </div>
+
+                    <div className="p-6">
+                        {ticket.histories
+                            .length === 0 ? (
+                            <div className="py-8 text-center text-sm text-gray-400">
+                                Belum ada
+                                histori tiket.
+                            </div>
+                        ) : (
+                            <div className="relative">
+                                {ticket.histories.map(
+                                    (
+                                        history,
+                                        index,
+                                    ) => (
+                                        <div
+                                            key={
+                                                history.id
+                                            }
+                                            className="relative flex gap-4 pb-7 last:pb-0"
+                                        >
+                                            {/* LINE */}
+
+                                            {index !==
+                                                ticket
+                                                    .histories
+                                                    .length -
+                                                    1 && (
+                                                <div className="absolute left-[15px] top-8 h-[calc(100%-20px)] w-[2px] bg-gray-200" />
+                                            )}
+
+                                            {/* DOT */}
+
+                                            <div className="relative z-10 mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
+                                                <CheckCircle2
+                                                    size={
+                                                        16
+                                                    }
+                                                />
+                                            </div>
+
+                                            {/* CONTENT */}
+
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <div>
+                                                        <div className="font-bold text-gray-800">
+                                                            {
+                                                                history.action_label
+                                                            }
+                                                        </div>
+
+                                                        <div className="mt-0.5 text-xs text-gray-500">
+                                                            Oleh:{' '}
+                                                            {history.actor ??
+                                                                'System'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="whitespace-nowrap text-xs text-gray-500">
+                                                        {
+                                                            history.created_at
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                {history.description && (
+                                                    <div className="mt-2 rounded-lg bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-600">
+                                                        {
+                                                            history.description
+                                                        }
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ============================================================
+                UPDATE PROGRESS MODAL
+            ============================================================ */}
+
+            {showProgressModal && (
+                <ModalOverlay
+                    onClose={() =>
+                        setShowProgressModal(
+                            false,
+                        )
+                    }
+                >
+                    <form
+                        onSubmit={
+                            submitProgress
+                        }
+                        className="w-full max-w-[600px] overflow-hidden rounded-[20px] bg-white shadow-2xl"
+                    >
+                        <ModalHeader
+                            title="Update Progress"
+                            onClose={() =>
+                                setShowProgressModal(
+                                    false,
+                                )
+                            }
+                        />
+
+                        <div className="p-6">
+                            {/* STATUS */}
+
+                            <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                Status Progress
+                                <span className="ml-1 text-red-500">
+                                    *
+                                </span>
+                            </label>
+
+                            <select
+                                value={
+                                    progressForm
+                                        .data
+                                        .status
+                                }
+                                onChange={(
+                                    event,
+                                ) =>
+                                    progressForm.setData(
+                                        'status',
+                                        event
+                                            .target
+                                            .value as
+                                            | 'in_progress'
+                                            | 'waiting_sparepart'
+                                            | 'waiting_verification',
+                                    )
+                                }
+                                className="h-[52px] w-full rounded-xl border border-gray-300 bg-white px-4 text-sm outline-none focus:border-green-600"
+                            >
+                                <option value="in_progress">
+                                    In Progress
+                                </option>
+
+                                <option value="waiting_sparepart">
+                                    Waiting
+                                    Sparepart
+                                </option>
+
+                                <option value="waiting_verification">
+                                    Pekerjaan
+                                    Selesai -
+                                    Ajukan
+                                    Verifikasi
+                                </option>
+                            </select>
+
+                            {progressForm.errors
+                                .status && (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {
+                                        progressForm
+                                            .errors
+                                            .status
+                                    }
+                                </p>
+                            )}
+
+                            {/* INFORMATION */}
+
+                            {progressForm.data
+                                .status ===
+                                'waiting_sparepart' && (
+                                <div className="mt-3 flex gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+                                    <Package
+                                        size={
+                                            18
+                                        }
+                                        className="mt-0.5 shrink-0"
+                                    />
+
+                                    Pengerjaan akan
+                                    ditandai sedang
+                                    menunggu
+                                    sparepart.
+                                </div>
+                            )}
+
+                            {progressForm.data
+                                .status ===
+                                'waiting_verification' && (
+                                <div className="mt-3 flex gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
+                                    <ShieldCheck
+                                        size={
+                                            18
+                                        }
+                                        className="mt-0.5 shrink-0"
+                                    />
+
+                                    Pekerjaan belum
+                                    dianggap selesai.
+                                    Tiket akan
+                                    menunggu
+                                    Maintenance
+                                    Verification.
+                                </div>
+                            )}
+
+                            {/* DESCRIPTION */}
+
+                            <div className="mt-4">
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                    Catatan
+                                    Progress
+                                    <span className="ml-1 text-red-500">
+                                        *
+                                    </span>
+                                </label>
+
+                                <textarea
+                                    rows={5}
+                                    value={
+                                        progressForm
+                                            .data
+                                            .description
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) =>
+                                        progressForm.setData(
+                                            'description',
+                                            event
+                                                .target
+                                                .value,
+                                        )
+                                    }
+                                    placeholder="Jelaskan pekerjaan yang telah dilakukan..."
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-green-600"
+                                />
+
+                                {progressForm.errors
+                                    .description && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {
+                                            progressForm
+                                                .errors
+                                                .description
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* ACTION */}
+
+                            <div className="mt-5 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowProgressModal(
+                                            false,
+                                        )
+                                    }
+                                    className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
+                                >
+                                    Batal
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={
+                                        progressForm.processing
+                                    }
+                                    className="rounded-xl bg-[#22c55e] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                >
+                                    {progressForm.processing
+                                        ? 'Menyimpan...'
+                                        : 'Simpan Progress'}
+                                </button>
+                            </div>
                         </div>
                     </form>
-                </div>
+                </ModalOverlay>
+            )}
+
+            {/* ============================================================
+                VERIFY MODAL
+            ============================================================ */}
+
+            {showVerifyModal && (
+                <ModalOverlay
+                    onClose={() =>
+                        setShowVerifyModal(
+                            false,
+                        )
+                    }
+                >
+                    <form
+                        onSubmit={
+                            submitVerification
+                        }
+                        className="w-full max-w-[580px] overflow-hidden rounded-[20px] bg-white shadow-2xl"
+                    >
+                        <ModalHeader
+                            title="Verifikasi Pekerjaan"
+                            onClose={() =>
+                                setShowVerifyModal(
+                                    false,
+                                )
+                            }
+                        />
+
+                        <div className="p-6">
+                            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                                <div className="flex items-center gap-2 font-bold text-green-700">
+                                    <ShieldCheck
+                                        size={
+                                            20
+                                        }
+                                    />
+
+                                    Konfirmasi
+                                    Penyelesaian
+                                </div>
+
+                                <p className="mt-2 text-sm leading-6 text-green-700">
+                                    Pastikan
+                                    pekerjaan sudah
+                                    diperiksa dan
+                                    kondisi telah
+                                    sesuai sebelum
+                                    tiket dinyatakan
+                                    selesai.
+                                </p>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                    Catatan
+                                    Verifikasi
+                                </label>
+
+                                <textarea
+                                    rows={4}
+                                    value={
+                                        verifyForm
+                                            .data
+                                            .note
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) =>
+                                        verifyForm.setData(
+                                            'note',
+                                            event
+                                                .target
+                                                .value,
+                                        )
+                                    }
+                                    placeholder="Catatan hasil pemeriksaan..."
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-purple-600"
+                                />
+                            </div>
+
+                            <div className="mt-5 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowVerifyModal(
+                                            false,
+                                        )
+                                    }
+                                    className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
+                                >
+                                    Batal
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={
+                                        verifyForm.processing
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                >
+                                    <CheckCircle2
+                                        size={
+                                            18
+                                        }
+                                    />
+
+                                    {verifyForm.processing
+                                        ? 'Memproses...'
+                                        : 'Verifikasi & Selesaikan'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </ModalOverlay>
+            )}
+
+            {/* ============================================================
+                REJECT VERIFICATION MODAL
+            ============================================================ */}
+
+            {showRejectVerificationModal && (
+                <ModalOverlay
+                    onClose={() =>
+                        setShowRejectVerificationModal(
+                            false,
+                        )
+                    }
+                >
+                    <form
+                        onSubmit={
+                            submitRejectVerification
+                        }
+                        className="w-full max-w-[580px] overflow-hidden rounded-[20px] bg-white shadow-2xl"
+                    >
+                        <ModalHeader
+                            title="Tolak Verifikasi"
+                            onClose={() =>
+                                setShowRejectVerificationModal(
+                                    false,
+                                )
+                            }
+                        />
+
+                        <div className="p-6">
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                Pekerjaan akan
+                                dikembalikan ke
+                                teknisi untuk
+                                diperbaiki atau
+                                dilanjutkan.
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                    Alasan Penolakan
+                                    <span className="ml-1 text-red-500">
+                                        *
+                                    </span>
+                                </label>
+
+                                <textarea
+                                    rows={5}
+                                    value={
+                                        rejectVerificationForm
+                                            .data
+                                            .reason
+                                    }
+                                    onChange={(
+                                        event,
+                                    ) =>
+                                        rejectVerificationForm.setData(
+                                            'reason',
+                                            event
+                                                .target
+                                                .value,
+                                        )
+                                    }
+                                    placeholder="Jelaskan bagian pekerjaan yang masih perlu diperbaiki..."
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-red-500"
+                                />
+
+                                {rejectVerificationForm
+                                    .errors
+                                    .reason && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {
+                                            rejectVerificationForm
+                                                .errors
+                                                .reason
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="mt-5 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowRejectVerificationModal(
+                                            false,
+                                        )
+                                    }
+                                    className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
+                                >
+                                    Batal
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={
+                                        rejectVerificationForm.processing
+                                    }
+                                    className="rounded-xl bg-red-600 px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                >
+                                    {rejectVerificationForm.processing
+                                        ? 'Memproses...'
+                                        : 'Tolak & Kembalikan'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </ModalOverlay>
             )}
         </>
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| INFO BOX
+|--------------------------------------------------------------------------
+*/
+
+function InfoBox({
+    label,
+    icon,
+    children,
+}: {
+    label: string;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="rounded-xl border border-gray-300 bg-gray-50 px-4 py-3">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                {icon}
+
+                {label}
+            </div>
+
+            <div className="mt-1 font-semibold text-gray-800">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| MODAL OVERLAY
+|--------------------------------------------------------------------------
+*/
+
+function ModalOverlay({
+    children,
+    onClose,
+}: {
+    children: React.ReactNode;
+    onClose: () => void;
+}) {
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onMouseDown={(event) => {
+                if (
+                    event.target ===
+                    event.currentTarget
+                ) {
+                    onClose();
+                }
+            }}
+        >
+            {children}
+        </div>
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| MODAL HEADER
+|--------------------------------------------------------------------------
+*/
+
+function ModalHeader({
+    title,
+    onClose,
+}: {
+    title: string;
+    onClose: () => void;
+}) {
+    return (
+        <div className="flex items-center justify-between bg-black px-5 py-4 text-white">
+            <div className="flex items-center gap-2">
+                <Wrench size={19} />
+
+                <h2 className="font-semibold">
+                    {title}
+                </h2>
+            </div>
+
+            <button
+                type="button"
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-md transition hover:bg-white/15"
+            >
+                <X size={18} />
+            </button>
+        </div>
     );
 }

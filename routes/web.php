@@ -15,14 +15,6 @@ use Inertia\Inertia;
 Route::get('/', [DashboardController::class, 'index'])
     ->name('home');
 
-Route::get('/tickets/create', function () {
-    return Inertia::render('tickets/create');
-});
-
-Route::get('/tickets', function () {
-    return Inertia::render('tickets/index');
-});
-
 Route::get('/spareparts', function () {
     return Inertia::render('spareparts/index');
 });
@@ -60,14 +52,14 @@ Route::resource('machines', MachineController::class);
 //     ->name('machines.destroy');
 
 // Ticket routes
-Route::get('/tickets/{code}', [TicketController::class, 'show'])
-    ->name('tickets.show');
+// Route::get('/tickets/{code}', [TicketController::class, 'show'])
+//     ->name('tickets.show');
 
-Route::get('/tickets/{code}/approve', [TicketController::class, 'approve'])
-    ->name('tickets.approve');
+// Route::get('/tickets/{code}/approve', [TicketController::class, 'approve'])
+//     ->name('tickets.approve');
 
-Route::get('/tickets/{code}/reject', [TicketController::class, 'reject'])
-    ->name('tickets.reject');
+// Route::get('/tickets/{code}/reject', [TicketController::class, 'reject'])
+//     ->name('tickets.reject');
 
 // Settings routes
 Route::get('/othersettings', [OthersettingsController::class, 'index'])
@@ -75,6 +67,61 @@ Route::get('/othersettings', [OthersettingsController::class, 'index'])
 
 Route::get('/profile', [OwnProfileController::class, 'index'])
     ->name('profile.index');
+
+Route::prefix('tickets')
+    ->name('tickets.')
+    ->middleware('auth')
+    ->group(function () {
+        Route::get(
+            '/',
+            [TicketController::class, 'index']
+        )->name('index');
+
+        Route::get(
+            '/create',
+            [TicketController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [TicketController::class, 'store']
+        )->name('store');
+
+        Route::get(
+            '/{ticket:code}/approval',
+            [TicketController::class, 'approval']
+        )->name('approval');
+
+        Route::post(
+            '/{ticket:code}/approve',
+            [TicketController::class, 'approve']
+        )->name('approve');
+
+        Route::post(
+            '/{ticket:code}/reject',
+            [TicketController::class, 'reject']
+        )->name('reject');
+
+        Route::get(
+            '/{ticket:code}',
+            [TicketController::class, 'show']
+        )->name('show');
+
+        Route::post(
+            '/{ticket:code}/progress',
+            [TicketController::class, 'updateProgress']
+        )->name('progress');
+
+        Route::post(
+            '/{ticket:code}/verify',
+            [TicketController::class, 'verify']
+        )->name('verify');
+
+        Route::post(
+            '/{ticket:code}/verification-reject',
+            [TicketController::class, 'rejectVerification']
+        )->name('verification.reject');
+    });
 
 // Roles routes
 Route::get('/roles', [RoleController::class, 'index'])
