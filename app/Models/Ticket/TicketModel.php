@@ -3,8 +3,8 @@
 namespace App\Models\Ticket;
 
 use App\Models\DivisionModel;
-use App\Models\User;
 use App\Models\Machine\MachineModel;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -23,7 +23,7 @@ class TicketModel extends Model
         'machine_id',
         'description',
         'damage_photo_url',
-        'status',
+        'status_id',
 
         'approved_by',
         'approved_at',
@@ -131,6 +131,14 @@ class TicketModel extends Model
         return $this->hasMany(
             TicketSparepartModel::class,
             'ticket_id'
+        );
+    }
+
+    public function status()
+    {
+        return $this->belongsTo(
+            TicketStatusModel::class,
+            'status_id'
         );
     }
 }

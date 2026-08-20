@@ -67,8 +67,14 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->roles()
-            ->where('role', $role)
-            ->where('is_active', true)
+            ->whereHas('role', function ($query) use ($role) {
+                $query
+                    ->where(function ($query) use ($role) {
+                        $query->where('code', $role)
+                            ->orWhere('name', $role);
+                    })
+                    ->where('is_active', true);
+            })
             ->exists();
     }
 
@@ -78,8 +84,14 @@ class User extends Authenticatable
     public function hasAnyRole(array $roles): bool
     {
         return $this->roles()
-            ->whereIn('role', $roles)
-            ->where('is_active', true)
+            ->whereHas('role', function ($query) use ($roles) {
+                $query
+                    ->where(function ($query) use ($roles) {
+                        $query->whereIn('code', $roles)
+                            ->orWhereIn('name', $roles);
+                    })
+                    ->where('is_active', true);
+            })
             ->exists();
     }
 

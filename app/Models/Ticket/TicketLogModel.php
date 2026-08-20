@@ -2,8 +2,8 @@
 
 namespace App\Models\Ticket;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class TicketLogModel extends Model
 {
@@ -14,8 +14,8 @@ class TicketLogModel extends Model
     protected $fillable = [
         'ticket_id',
         'action',
-        'from_status',
-        'to_status',
+        'from_status_id',
+        'to_status_id',
         'description',
         'created_by',
         'created_at',
@@ -38,6 +38,22 @@ class TicketLogModel extends Model
         return $this->belongsTo(
             User::class,
             'created_by'
+        );
+    }
+
+    public function fromStatus()
+    {
+        return $this->belongsTo(
+            TicketStatusModel::class,
+            'from_status_id'
+        );
+    }
+
+    public function toStatus()
+    {
+        return $this->belongsTo(
+            TicketStatusModel::class,
+            'to_status_id'
         );
     }
 }

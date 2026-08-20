@@ -48,8 +48,10 @@ class HandleInertiaRequests extends Middleware
                 'roles' => app()->environment('testing')
                     ? []
                     : ($request->user()?->roles()
-                        ->where('is_active', true)
-                        ->pluck('role')
+                        ->whereHas('role', fn ($query) => $query->where('is_active', true))
+                        ->with('role:id,name,code')
+                        ->get()
+                        ->pluck('role.name')
                         ->values()
                         ->all() ?? []),
             ],

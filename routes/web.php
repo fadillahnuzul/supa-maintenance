@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
-    // Route::inertia('/', 'welcome')->name('home');
     Route::get('/', [DashboardController::class, 'index'])
         ->name('home');
 
@@ -38,29 +37,7 @@ Route::middleware('auth')->group(function () {
     )
         ->name('spareparts.stock.store');
 
-    // Machine routes
-    // Route::get('/machines', [MachineController::class, 'index'])
-    //     ->name('machines.index');
     Route::resource('machines', MachineController::class);
-
-    // Route::post('/machines', [MachineController::class, 'store'])
-    //     ->name('machines.store');
-
-    // Route::put('/machines/{id}', [MachineController::class, 'update'])
-    //     ->name('machines.update');
-
-    // Route::delete('/machines/{id}', [MachineController::class, 'destroy'])
-    //     ->name('machines.destroy');
-
-    // Ticket routes
-    // Route::get('/tickets/{code}', [TicketController::class, 'show'])
-    //     ->name('tickets.show');
-
-    // Route::get('/tickets/{code}/approve', [TicketController::class, 'approve'])
-    //     ->name('tickets.approve');
-
-    // Route::get('/tickets/{code}/reject', [TicketController::class, 'reject'])
-    //     ->name('tickets.reject');
 
     // Settings routes
     Route::get('/othersettings', [OthersettingsController::class, 'index'])
@@ -122,11 +99,6 @@ Route::middleware('auth')->group(function () {
                 [TicketController::class, 'rejectVerification']
             )->name('verification.reject');
         });
-
-    // Roles routes
-    Route::get('/roles', [RoleController::class, 'index'])
-        ->middleware('role:Admin Sistem,Supervisor')
-        ->name('roles.index');
 
     // Route::post('/roles', [RoleController::class, 'store'])
     //     ->name('roles.store');

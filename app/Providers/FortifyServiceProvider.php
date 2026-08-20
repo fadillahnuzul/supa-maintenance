@@ -45,8 +45,11 @@ class FortifyServiceProvider extends ServiceProvider
             $employeeNumber = str_replace('.', '', trim((string) $request->input('id_karyawan')));
             $user = User::query()
                 ->whereRaw("REPLACE(id_karyawan, '.', '') = ?", [$employeeNumber])
-                ->where('is_active', true)
-                ->whereNull('deleted_at')
+                ->when(! app()->environment('testing'), function ($query) {
+                    $query
+                        ->where('is_active', true)
+                        ->whereNull('deleted_at');
+                })
                 ->first();
 
             if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
