@@ -20,6 +20,7 @@ import {
     useState,
 } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -32,7 +33,7 @@ function updateStatus(
     status: 'none' | 'on_delivery',
 ) {
     router.patch(
-        `/spareparts/${id}/delivery-status`,
+        route('spareparts.update-delivery-status', id),
         {
             delivery_status: status,
         },
@@ -135,21 +136,6 @@ type PaginationLink = {
     active: boolean;
 };
 
-type PaginatedHistories = {
-    data: StockHistory[];
-
-    current_page: number;
-    last_page: number;
-
-    per_page: number;
-    total: number;
-
-    from: number | null;
-    to: number | null;
-
-    links: PaginationLink[];
-};
-
 type PaginatedSpareparts = {
     data: Sparepart[];
 
@@ -177,7 +163,7 @@ type Filters = {
 type Props = {
     spareparts: PaginatedSpareparts;
 
-    histories: PaginatedHistories;
+    histories: StockHistory[];
 
     buildings: Building[];
 
@@ -819,33 +805,14 @@ export default function SparepartIndex({
                                                                     onClick={(event) =>
                                                                         event.stopPropagation()
                                                                     }
-                                                                    className="cursor-pointer"
-                                                                    title={
-                                                                        item.delivery_status ===
-                                                                            'on_delivery'
-                                                                            ? 'Tandai sebagai Delivered'
-                                                                            : 'Tandai sebagai On Delivery'
-                                                                    }
+                                                                    className="cursor-pointer rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                                                                    title="Klik untuk mengubah status delivery"
                                                                 >
-                                                                    <span
-                                                                        className={`inline-flex gap-1 min-w-[95px] items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition hover:opacity-80 ${statusStyles[
-                                                                            item
-                                                                                .status
-                                                                        ]
-                                                                            }`}
+                                                                    <Badge
+                                                                        className={`min-w-[95px] justify-center border-0 px-3 py-2 text-sm font-medium hover:opacity-90 ${statusStyles[item.status]}`}
                                                                     >
-                                                                        {
-                                                                            item.status
-                                                                        }
-                                                                    <Edit3
-                                                                        size={
-                                                                            14
-                                                                        }
-                                                                        strokeWidth={
-                                                                            2.3
-                                                                        }
-                                                                    />
-                                                                    </span>
+                                                                        {item.status}
+                                                                    </Badge>
                                                                 </button>
                                                             </DropdownMenuTrigger>
 
@@ -855,30 +822,35 @@ export default function SparepartIndex({
                                                                     event.stopPropagation()
                                                                 }
                                                             >
-                                                                {item.delivery_status ===
-                                                                    'none' ? (
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            updateStatus(
-                                                                                item.id,
-                                                                                'on_delivery',
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        On Delivery
-                                                                    </DropdownMenuItem>
-                                                                ) : (
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            updateStatus(
-                                                                                item.id,
-                                                                                'none',
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        Delivered
-                                                                    </DropdownMenuItem>
-                                                                )}
+                                                                <DropdownMenuItem
+                                                                    disabled={
+                                                                        item.delivery_status ===
+                                                                        'on_delivery'
+                                                                    }
+                                                                    onClick={() =>
+                                                                        updateStatus(
+                                                                            item.id,
+                                                                            'on_delivery',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    On Delivery
+                                                                </DropdownMenuItem>
+
+                                                                <DropdownMenuItem
+                                                                    disabled={
+                                                                        item.delivery_status ===
+                                                                        'none'
+                                                                    }
+                                                                    onClick={() =>
+                                                                        updateStatus(
+                                                                            item.id,
+                                                                            'none',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Tidak On Delivery
+                                                                </DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </td>
@@ -1135,7 +1107,7 @@ export default function SparepartIndex({
                                 </thead>
 
                                 <tbody>
-                                    {histories.data.map(
+                                    {histories.map(
                                         (
                                             history,
                                         ) => (
@@ -1166,7 +1138,7 @@ export default function SparepartIndex({
                                                         className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${historyStyles[
                                                             history
                                                                 .type
-                                                        ]
+                                                            ]
                                                             }`}
                                                     >
                                                         {
@@ -1238,7 +1210,7 @@ export default function SparepartIndex({
                                         ),
                                     )}
 
-                                    {histories.data.length ===
+                                    {histories.length ===
                                         0 && (
                                             <tr>
                                                 <td
@@ -1255,34 +1227,6 @@ export default function SparepartIndex({
                             </table>
                         </div>
                     </div>
-
-                    {histories.last_page > 1 && (
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-sm text-gray-500">
-                                Menampilkan {histories.from} sampai {histories.to} dari {histories.total} riwayat
-                            </p>
-
-                            <div className="flex flex-wrap gap-1">
-                                {histories.links.map((link) => (
-                                    <button
-                                        key={`${link.label}-${link.url}`}
-                                        type="button"
-                                        disabled={!link.url || link.active}
-                                        onClick={() => openPage(link.url)}
-                                        className={`min-w-9 rounded-md px-3 py-2 text-sm ${link.active
-                                            ? 'bg-[#10b53b] text-white'
-                                            : link.url
-                                                ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                                : 'cursor-not-allowed border border-gray-200 text-gray-300'
-                                            }`}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </section>
             </div>
         </>

@@ -4,6 +4,7 @@ namespace App\Models\Sparepart;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Models\BuildingModel;
 
 class SparepartModel extends Model
@@ -61,5 +62,20 @@ class SparepartModel extends Model
         return $this->stock < $this->minimum_stock
             ? 'Stok Kurang'
             : 'Stok Cukup';
+    }
+
+    protected function status(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->delivery_status === 'on_delivery') {
+                    return 'On Delivery';
+                }
+
+                return $this->stock >= $this->minimum_stock
+                    ? 'Stok Cukup'
+                    : 'Stok Kurang';
+            },
+        );
     }
 }

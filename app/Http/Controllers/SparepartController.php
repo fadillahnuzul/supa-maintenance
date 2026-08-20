@@ -138,9 +138,9 @@ class SparepartController extends Controller
                 'creator',
             ])
             ->latest('created_at')
-            ->limit(50)
-            ->get()
-            ->map(function (SparepartStockLogModel $log) {
+            ->paginate(20, ['*'], 'history_page')
+            ->withQueryString()
+            ->through(function (SparepartStockLogModel $log) {
                 return $this->stockLogResource($log);
             });
 
@@ -311,24 +311,24 @@ class SparepartController extends Controller
 
         $histories =
             SparepartStockLogModel::query()
-                ->where(
-                    'sparepart_id',
-                    $sparepart->id
-                )
-                ->with([
-                    'creator',
-                ])
-                ->latest('created_at')
-                ->limit(100)
-                ->get()
-                ->map(function (
-                    SparepartStockLogModel $log
-                ) {
-                    return $this
-                        ->stockLogResource(
-                            $log
-                        );
-                });
+            ->where(
+                'sparepart_id',
+                $sparepart->id
+            )
+            ->with([
+                'creator',
+            ])
+            ->latest('created_at')
+            ->limit(100)
+            ->get()
+            ->map(function (
+                SparepartStockLogModel $log
+            ) {
+                return $this
+                    ->stockLogResource(
+                        $log
+                    );
+            });
 
         return Inertia::render(
             'spareparts/show',
@@ -615,11 +615,11 @@ class SparepartController extends Controller
             */
                 $lockedSparepart =
                     SparepartModel::query()
-                        ->whereKey(
-                            $sparepart->id
-                        )
-                        ->lockForUpdate()
-                        ->firstOrFail();
+                    ->whereKey(
+                        $sparepart->id
+                    )
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 $stockBefore =
                     (float) $lockedSparepart->stock;
@@ -863,9 +863,9 @@ class SparepartController extends Controller
 
             'image_url' => $sparepart->image
                 ? Storage::disk('public')
-                    ->url(
-                        $sparepart->image
-                    )
+                ->url(
+                    $sparepart->image
+                )
                 : null,
 
             'created_at' => $sparepart->created_at
@@ -900,12 +900,12 @@ class SparepartController extends Controller
 
             'sparepart' => $log->sparepart
                 ? trim(
-                    $log->sparepart->name.
+                    $log->sparepart->name .
                         (
                             $log->sparepart->producer
-                            ? ' - '.
+                            ? ' - ' .
                             $log->sparepart
-                                ->producer
+                            ->producer
                             : ''
                         )
                 )
@@ -1027,6 +1027,28 @@ class SparepartController extends Controller
 
             'image' => $sparepart->image,
         ];
+    }
+
+    public function updateDeliveryStatus(
+        Request $request,
+        SparepartModel $sparepart
+    ) {
+        $validated = $request->validate([
+            'delivery_status' => [
+                'required',
+                Rule::in([
+                    'none',
+                    'on_delivery',
+                ]),
+            ],
+        ]);
+
+        $sparepart->update([
+            'delivery_status' =>
+            $validated['delivery_status'],
+        ]);
+
+        return back();
     }
 
     /**
