@@ -13,10 +13,9 @@ import {
     Wrench,
     X,
 } from 'lucide-react';
-import {
-    FormEvent,
-    useState,
-} from 'react';
+import { useState, useRef } from 'react';
+import type { FormEvent } from 'react';
+import { approve as approveTicket } from '@/actions/App/Http/Controllers/TicketController';
 
 /*
 |--------------------------------------------------------------------------
@@ -111,6 +110,9 @@ export default function TicketApproval({
 
             deadline: '',
         });
+
+    const deadlineInputRef =
+        useRef<HTMLInputElement>(null);
 
     /*
     |--------------------------------------------------------------------------
@@ -212,13 +214,11 @@ export default function TicketApproval({
         /*
          * Endpoint Laravel:
          *
-         * POST /tickets/{code}/approve
+         * POST /tickets/{id}/approve
          */
 
         approveForm.post(
-            `/tickets/${encodeURIComponent(
-                ticket.code,
-            )}/approve`,
+            approveTicket.url(ticket.id),
             {
                 preserveScroll: true,
             },
@@ -239,12 +239,12 @@ export default function TicketApproval({
         /*
          * Endpoint Laravel:
          *
-         * POST /tickets/{code}/reject
+         * POST /tickets/{id}/reject
          */
 
         rejectForm.post(
             `/tickets/${encodeURIComponent(
-                ticket.code,
+                ticket.id,
             )}/reject`,
             {
                 preserveScroll: true,
@@ -564,7 +564,18 @@ export default function TicketApproval({
                                     </label>
 
                                     <input
+                                        ref={
+                                            deadlineInputRef
+                                        }
                                         type="date"
+                                        min={
+                                            new Date()
+                                                .toISOString()
+                                                .split('T')[0]
+                                        }
+                                        onClick={(event) => {
+                                            event.currentTarget.showPicker?.();
+                                        }}
                                         value={
                                             approveForm
                                                 .data

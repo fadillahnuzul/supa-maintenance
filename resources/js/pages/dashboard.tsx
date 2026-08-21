@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CalendarDays,
@@ -299,6 +299,7 @@ function formatCurrency(value: number) {
 export default function Dashboard() {
     const [startDate, setStartDate] = useState('2026-08-03');
     const [endDate, setEndDate] = useState('2026-08-08');
+    const { auth } = usePage().props;
 
     const filteredTickets = useMemo(
         () =>
@@ -412,7 +413,7 @@ export default function Dashboard() {
                                 Good Morning,
                             </p>
                             <h1 className="text-[24px] font-extrabold leading-tight text-[#111827]">
-                                Budi Santoso!
+                                {auth.user?.name}
                             </h1>
                             <p className="text-sm text-gray-600">
                                 Today is a new chance to create something amazing.

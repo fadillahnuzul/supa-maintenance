@@ -65,37 +65,37 @@ Route::middleware('auth')->group(function () {
             )->name('store');
 
             Route::get(
-                '/{ticket:code}/approval',
+                '/{ticket:id}/approval',
                 [TicketController::class, 'approval']
             )->name('approval');
 
             Route::post(
-                '/{ticket:code}/approve',
+                '/{ticket:id}/approve',
                 [TicketController::class, 'approve']
             )->name('approve');
 
             Route::post(
-                '/{ticket:code}/reject',
+                '/{ticket:id}/reject',
                 [TicketController::class, 'reject']
             )->name('reject');
 
             Route::get(
-                '/{ticket:code}',
+                '/{ticket:id}',
                 [TicketController::class, 'show']
             )->name('show');
 
             Route::post(
-                '/{ticket:code}/progress',
+                '/{ticket:id}/progress',
                 [TicketController::class, 'updateProgress']
             )->name('progress');
 
             Route::post(
-                '/{ticket:code}/verify',
+                '/{ticket:id}/verify',
                 [TicketController::class, 'verify']
             )->name('verify');
 
             Route::post(
-                '/{ticket:code}/verification-reject',
+                '/{ticket:id}/verification-reject',
                 [TicketController::class, 'rejectVerification']
             )->name('verification.reject');
         });

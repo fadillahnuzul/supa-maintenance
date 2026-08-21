@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Bell } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
 
 import Sidebar from '@/components/sidebar';
 
@@ -10,6 +11,9 @@ type AppLayoutProps = {
 
 export default function AppLayout({ children }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false);
+    const { url } = usePage();
+    const { auth } = usePage().props;
+    
 
     return (
         <div className="min-h-screen bg-[#f7f8fa]">
@@ -43,16 +47,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
                             <span className="absolute right-0 top-0 h-3 w-3 rounded-full bg-red-500" />
                         </button>
-
+                        {!collapsed && (
                         <div className="text-right">
                             <div className="font-bold text-gray-800">
-                                Budi Santoso
+                                {auth.user?.name}
                             </div>
 
                             <div className="mt-1 rounded-full bg-[#32a936] px-4 py-1 text-sm text-white">
-                                Operasional
+                                {auth.roles[0] ?? 'Pengguna'}
                             </div>
                         </div>
+                        )}
 
                         <img
                             src="/images/default-avatar.jpg"

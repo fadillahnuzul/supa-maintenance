@@ -324,10 +324,10 @@ export default function TicketIndex({
     */
 
     const openShow = (
-        code: string,
+        id: number,
     ) => {
         router.visit(
-            `/tickets/${encodeURIComponent(code)}`,
+            `/tickets/${encodeURIComponent(id)}`,
         );
     };
 
@@ -338,10 +338,10 @@ export default function TicketIndex({
     */
 
     const openApproval = (
-        code: string,
+        id: number,
     ) => {
         router.visit(
-            `/tickets/${encodeURIComponent(code)}/approval`,
+            `/tickets/${encodeURIComponent(id)}/approval`,
         );
     };
 
@@ -369,7 +369,7 @@ export default function TicketIndex({
                         type="button"
                         onClick={() =>
                             openApproval(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
@@ -378,12 +378,11 @@ export default function TicketIndex({
                     >
                         <Check size={18} />
                     </button>
-
                     <button
                         type="button"
                         onClick={() =>
                             openShow(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
@@ -413,7 +412,7 @@ export default function TicketIndex({
                         type="button"
                         onClick={() =>
                             openShow(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
@@ -427,7 +426,7 @@ export default function TicketIndex({
                         type="button"
                         onClick={() =>
                             openShow(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
@@ -455,7 +454,7 @@ export default function TicketIndex({
                         type="button"
                         onClick={() =>
                             openShow(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#9333ea] text-white shadow-sm transition hover:bg-[#7e22ce]"
@@ -471,7 +470,7 @@ export default function TicketIndex({
                         type="button"
                         onClick={() =>
                             openShow(
-                                ticket.code,
+                                ticket.id,
                             )
                         }
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
@@ -494,7 +493,7 @@ export default function TicketIndex({
                     type="button"
                     onClick={() =>
                         openShow(
-                            ticket.code,
+                            ticket.id,
                         )
                     }
                     className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
@@ -784,7 +783,7 @@ export default function TicketIndex({
                                                     type="button"
                                                     onClick={() =>
                                                         openShow(
-                                                            ticket.code,
+                                                            ticket.id,
                                                         )
                                                     }
                                                     className="text-left font-semibold text-[#111827] transition hover:text-blue-600"

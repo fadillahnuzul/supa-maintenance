@@ -12,9 +12,12 @@ import {
     FileText,
     History,
     ImageIcon,
+    ImageUp,
     MapPin,
     Package,
+    Plus,
     ShieldCheck,
+    Trash2,
     UserRound,
     UsersRound,
     Wrench,
@@ -22,9 +25,11 @@ import {
     XCircle,
 } from 'lucide-react';
 import {
-    FormEvent,
+    useRef,
     useState,
+    useEffect,
 } from 'react';
+import type { FormEvent } from 'react';
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +69,20 @@ type TicketHistory = {
     created_at: string;
 };
 
+type TicketDocumentation = {
+    id: number;
+    image: string;
+    created_at: string;
+};
+
+type Sparepart = {
+    id: number;
+    code: string;
+    name: string;
+    stock: number;
+    unit: string;
+};
+
 type Ticket = {
     id: number;
 
@@ -100,7 +119,7 @@ type Ticket = {
 
     deadline: string | null;
 
-    verification_at: string | null;
+    verified_at: string | null;
     verified_by: string | null;
 
     completed_at: string | null;
@@ -108,10 +127,14 @@ type Ticket = {
     technicians: Technician[];
 
     histories: TicketHistory[];
+
+    documentations: TicketDocumentation[];
 };
 
 type Props = {
     ticket: Ticket;
+
+    spareparts: Sparepart[];
 
     can: {
         update_progress: boolean;
@@ -160,6 +183,7 @@ const statusStyles: Record<
 export default function TicketShow({
     ticket,
     can,
+    spareparts,
 }: Props) {
     /*
     |--------------------------------------------------------------------------
@@ -182,6 +206,21 @@ export default function TicketShow({
         setShowRejectVerificationModal,
     ] = useState(false);
 
+    const [selectedSparepartId, setSelectedSparepartId] =
+        useState('');
+
+    const [sparepartQuantity, setSparepartQuantity] =
+        useState('');
+
+    const [sparepartError, setSparepartError] =
+        useState<string | null>(null);
+
+    const evidenceInputRef =
+        useRef<HTMLInputElement>(null);
+
+    const [evidencePreview, setEvidencePreview] =
+        useState<string | null>(null);
+
     /*
     |--------------------------------------------------------------------------
     | PROGRESS FORM
@@ -189,15 +228,24 @@ export default function TicketShow({
     */
 
     const progressForm = useForm<{
-        status:
+        progress_status:
             | 'in_progress'
             | 'waiting_sparepart'
             | 'waiting_verification';
 
         description: string;
+
+        evidence: File | null;
+
+        spareparts_used: {
+            id: number;
+            quantity: number;
+        }[];
     }>({
-        status: 'in_progress',
+        progress_status: 'in_progress',
         description: '',
+        evidence: null,
+        spareparts_used: [],
     });
 
     /*
@@ -244,6 +292,10 @@ export default function TicketShow({
     const openProgressModal = () => {
         progressForm.clearErrors();
 
+        setSelectedSparepartId('');
+        setSparepartQuantity('');
+        setSparepartError(null);
+
         /*
          * Assigned pertama kali
          * otomatis default ke In Progress.
@@ -253,7 +305,7 @@ export default function TicketShow({
             ticket.status === 'assigned'
         ) {
             progressForm.setData(
-                'status',
+                'progress_status',
                 'in_progress',
             );
         }
@@ -269,13 +321,126 @@ export default function TicketShow({
             'waiting_sparepart'
         ) {
             progressForm.setData(
-                'status',
+                'progress_status',
                 'in_progress',
             );
         }
 
         setShowProgressModal(true);
     };
+
+    const addSparepart = () => {
+        const sparepartId = Number(
+            selectedSparepartId,
+        );
+        const quantity = Number(
+            sparepartQuantity,
+        );
+        const sparepart = spareparts.find(
+            (item) => item.id === sparepartId,
+        );
+
+        if (!sparepart) {
+            setSparepartError('Pilih sparepart terlebih dahulu.');
+
+            return;
+        }
+
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+            setSparepartError('Masukkan jumlah sparepart yang valid.');
+
+            return;
+        }
+
+        if (quantity > sparepart.stock) {
+            setSparepartError(
+                `Jumlah melebihi stok tersedia (${sparepart.stock} ${sparepart.unit}).`,
+            );
+
+            return;
+        }
+
+        const existingItem = progressForm.data.spareparts_used.find(
+            (item) => item.id === sparepartId,
+        );
+
+        if (
+            existingItem &&
+            existingItem.quantity + quantity > sparepart.stock
+        ) {
+            setSparepartError(
+                `Total jumlah melebihi stok tersedia (${sparepart.stock} ${sparepart.unit}).`,
+            );
+
+            return;
+        }
+
+        if (existingItem) {
+            progressForm.setData(
+                'spareparts_used',
+                progressForm.data.spareparts_used.map(
+                    (item) =>
+                        item.id === sparepartId
+                            ? {
+                                  ...item,
+                                  quantity: item.quantity + quantity,
+                              }
+                            : item,
+                ),
+            );
+        } else {
+            progressForm.setData(
+                'spareparts_used',
+                [
+                    ...progressForm.data.spareparts_used,
+                    {
+                        id: sparepartId,
+                        quantity,
+                    },
+                ],
+            );
+        }
+
+        setSelectedSparepartId('');
+        setSparepartQuantity('');
+        setSparepartError(null);
+    };
+
+    const removeSparepart = (sparepartId: number) => {
+        progressForm.setData(
+            'spareparts_used',
+            progressForm.data.spareparts_used.filter(
+                (item) => item.id !== sparepartId,
+            ),
+        );
+
+        setSparepartError(null);
+    };
+
+    const handleEvidenceChange = (
+        file: File | null,
+    ) => {
+        if (evidencePreview) {
+            URL.revokeObjectURL(evidencePreview);
+        }
+
+        progressForm.setData(
+            'evidence',
+            file,
+        );
+
+        setEvidencePreview(
+            file ? URL.createObjectURL(file) : null,
+        );
+    };
+
+    useEffect(() => {
+        return () => {
+            if (evidencePreview) {
+                URL.revokeObjectURL(evidencePreview);
+            }
+        };
+    }, [evidencePreview]);
 
     /*
     |--------------------------------------------------------------------------
@@ -292,14 +457,15 @@ export default function TicketShow({
          * Sesuai route Laravel:
          *
          * POST
-         * /tickets/{code}/progress
+         * /tickets/{id}/progress
          */
 
         progressForm.post(
             `/tickets/${encodeURIComponent(
-                ticket.code,
+                ticket.id,
             )}/progress`,
             {
+                forceFormData: true,
                 preserveScroll: true,
 
                 onSuccess: () => {
@@ -308,6 +474,10 @@ export default function TicketShow({
                     );
 
                     progressForm.reset();
+
+                    setSelectedSparepartId('');
+                    setSparepartQuantity('');
+                    setSparepartError(null);
                 },
             },
         );
@@ -328,12 +498,12 @@ export default function TicketShow({
          * Sesuai route:
          *
          * POST
-         * /tickets/{code}/verify
+         * /tickets/{id}/verify
          */
 
         verifyForm.post(
             `/tickets/${encodeURIComponent(
-                ticket.code,
+                ticket.id,
             )}/verify`,
             {
                 preserveScroll: true,
@@ -362,12 +532,12 @@ export default function TicketShow({
 
         /*
          * POST
-         * /tickets/{code}/verification-reject
+         * /tickets/{id}/verification-reject
          */
 
         rejectVerificationForm.post(
             `/tickets/${encodeURIComponent(
-                ticket.code,
+                ticket.id,
             )}/verification-reject`,
             {
                 preserveScroll: true,
@@ -797,7 +967,7 @@ export default function TicketShow({
                                     </InfoBox>
 
                                     <InfoBox label="Waktu Verifikasi">
-                                        {ticket.verification_at ??
+                                        {ticket.verified_at ??
                                             '-'}
                                     </InfoBox>
 
@@ -909,18 +1079,17 @@ export default function TicketShow({
                     HISTORY
                 ======================================================== */}
 
-                <div className="mt-5 overflow-hidden rounded-[20px] bg-white shadow-md">
-                    <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-                        <History
-                            size={20}
-                        />
+                <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                    <div className="overflow-hidden rounded-[20px] bg-white shadow-md">
+                        <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+                            <History size={20} />
 
-                        <h2 className="font-bold text-gray-900">
-                            Histori Tiket
-                        </h2>
-                    </div>
+                            <h2 className="font-bold text-gray-900">
+                                Histori Perbaikan
+                            </h2>
+                        </div>
 
-                    <div className="p-6">
+                        <div className="p-6">
                         {ticket.histories
                             .length === 0 ? (
                             <div className="py-8 text-center text-sm text-gray-400">
@@ -998,6 +1167,52 @@ export default function TicketShow({
                                 )}
                             </div>
                         )}
+                        </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-[20px] bg-white shadow-md">
+                        <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+                            <ImageIcon size={20} />
+
+                            <h2 className="font-bold text-gray-900">
+                                Dokumentasi Progress
+                            </h2>
+                        </div>
+
+                        <div className="p-6">
+                            {ticket.documentations.length === 0 ? (
+                                <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-sm text-gray-400">
+                                    Belum ada dokumentasi progress.
+                                </div>
+                            ) : (
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {ticket.documentations.map(
+                                        (documentation) => (
+                                            <figure
+                                                key={documentation.id}
+                                                className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                                            >
+                                                <a
+                                                    href={documentation.image}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    <img
+                                                        src={documentation.image}
+                                                        alt="Dokumentasi progress"
+                                                        className="aspect-[4/3] w-full object-cover transition hover:scale-[1.02]"
+                                                    />
+                                                </a>
+
+                                                <figcaption className="px-3 py-2 text-xs text-gray-500">
+                                                    {documentation.created_at}
+                                                </figcaption>
+                                            </figure>
+                                        ),
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1039,51 +1254,61 @@ export default function TicketShow({
                                 </span>
                             </label>
 
-                            <select
-                                value={
-                                    progressForm
-                                        .data
-                                        .status
-                                }
-                                onChange={(
-                                    event,
-                                ) =>
-                                    progressForm.setData(
-                                        'status',
-                                        event
-                                            .target
-                                            .value as
-                                            | 'in_progress'
-                                            | 'waiting_sparepart'
-                                            | 'waiting_verification',
-                                    )
-                                }
-                                className="h-[52px] w-full rounded-xl border border-gray-300 bg-white px-4 text-sm outline-none focus:border-green-600"
-                            >
-                                <option value="in_progress">
-                                    In Progress
-                                </option>
-
-                                <option value="waiting_sparepart">
-                                    Waiting
-                                    Sparepart
-                                </option>
-
-                                <option value="waiting_verification">
-                                    Pekerjaan
-                                    Selesai -
-                                    Ajukan
-                                    Verifikasi
-                                </option>
-                            </select>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                                {[
+                                    {
+                                        value: 'in_progress',
+                                        label: 'In Progress',
+                                    },
+                                    {
+                                        value: 'waiting_sparepart',
+                                        label: 'Tambah Stok Sparepart',
+                                    },
+                                    {
+                                        value: 'waiting_verification',
+                                        label: 'Selesai',
+                                    },
+                                ].map((statusOption) => (
+                                    <label
+                                        key={statusOption.value}
+                                        className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition ${
+                                            progressForm.data.progress_status ===
+                                            statusOption.value
+                                                ? 'border-green-600 bg-green-50 text-green-700'
+                                                : 'border-gray-300 bg-white text-gray-700 hover:border-green-500'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="progress_status"
+                                            value={statusOption.value}
+                                            checked={
+                                                progressForm.data.progress_status ===
+                                                statusOption.value
+                                            }
+                                            onChange={() =>
+                                                progressForm.setData(
+                                                    'progress_status',
+                                                    statusOption.value as
+                                                        | 'in_progress'
+                                                        | 'waiting_sparepart'
+                                                        | 'waiting_verification',
+                                                )
+                                            }
+                                            className="accent-green-600"
+                                        />
+                                        {statusOption.label}
+                                    </label>
+                                ))}
+                            </div>
 
                             {progressForm.errors
-                                .status && (
+                                .progress_status && (
                                 <p className="mt-1 text-xs text-red-600">
                                     {
                                         progressForm
                                             .errors
-                                            .status
+                                            .progress_status
                                     }
                                 </p>
                             )}
@@ -1091,7 +1316,7 @@ export default function TicketShow({
                             {/* INFORMATION */}
 
                             {progressForm.data
-                                .status ===
+                                .progress_status ===
                                 'waiting_sparepart' && (
                                 <div className="mt-3 flex gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
                                     <Package
@@ -1109,7 +1334,7 @@ export default function TicketShow({
                             )}
 
                             {progressForm.data
-                                .status ===
+                                .progress_status ===
                                 'waiting_verification' && (
                                 <div className="mt-3 flex gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
                                     <ShieldCheck
@@ -1128,12 +1353,123 @@ export default function TicketShow({
                                 </div>
                             )}
 
+                            {/* SPAREPART */}
+
+                            <div className="mt-4">
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                    Sparepart yang digunakan
+                                </label>
+
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <select
+                                        value={selectedSparepartId}
+                                        onChange={(event) => {
+                                            setSelectedSparepartId(
+                                                event.target.value,
+                                            );
+                                            setSparepartError(null);
+                                        }}
+                                        className="h-11 min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-green-600"
+                                    >
+                                        <option value="">
+                                            -- Pilih Sparepart --
+                                        </option>
+
+                                        {spareparts.map((sparepart) => (
+                                            <option
+                                                key={sparepart.id}
+                                                value={sparepart.id}
+                                                disabled={sparepart.stock <= 0}
+                                            >
+                                                {sparepart.name} ({Number(sparepart.stock).toFixed(1)}{' '}
+                                                {sparepart.unit})
+                                            </option>
+                                        ))}
+                                    </select>
+
+                                    <input
+                                        type="number"
+                                        min="0.0"
+                                        step="0.5"
+                                        value={sparepartQuantity}
+                                        onChange={(event) => {
+                                            setSparepartQuantity(
+                                                event.target.value,
+                                            );
+                                            setSparepartError(null);
+                                        }}
+                                        placeholder="Jumlah..."
+                                        className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-green-600 sm:w-28 text-gray-600"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={addSparepart}
+                                        className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-4 text-sm font-bold text-white transition hover:bg-blue-600"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah
+                                    </button>
+                                </div>
+
+                                {sparepartError && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {sparepartError}
+                                    </p>
+                                )}
+
+                                {progressForm.data.spareparts_used.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                        {progressForm.data.spareparts_used.map(
+                                            (item) => {
+                                                const sparepart = spareparts.find(
+                                                    (option) =>
+                                                        option.id === item.id,
+                                                );
+
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className="grid grid-cols-[1fr_auto_44px] items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"
+                                                    >
+                                                        <span>
+                                                            {sparepart?.name ??
+                                                                'Sparepart'}{' '}
+                                                            x {Number(item.quantity).toFixed(1)}{' '}
+                                                            {sparepart?.unit ?? ''}
+                                                        </span>
+
+                                                        <span className="text-right text-xs text-gray-500">
+                                                            {Number(sparepart?.stock).toFixed(1) ?? 0}{' '}
+                                                            tersedia
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                removeSparepart(
+                                                                    item.id,
+                                                                )
+                                                            }
+                                                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+                                                            title="Hapus Sparepart"
+                                                            aria-label="Hapus Sparepart"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            },
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* DESCRIPTION */}
 
                             <div className="mt-4">
                                 <label className="mb-1.5 block text-sm font-semibold text-gray-800">
-                                    Catatan
-                                    Progress
+                                    Catatan Progress
                                     <span className="ml-1 text-red-500">
                                         *
                                     </span>
@@ -1157,7 +1493,7 @@ export default function TicketShow({
                                         )
                                     }
                                     placeholder="Jelaskan pekerjaan yang telah dilakukan..."
-                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-green-600"
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-green-600 placeholder:text-gray-500 text-gray-600"
                                 />
 
                                 {progressForm.errors
@@ -1168,6 +1504,56 @@ export default function TicketShow({
                                                 .errors
                                                 .description
                                         }
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* EVIDENCE */}
+
+                            <div className="mt-4">
+                                <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                    Unggah Bukti
+                                </label>
+
+                                <input
+                                    ref={evidenceInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={(event) =>
+                                        handleEvidenceChange(
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        evidenceInputRef.current?.click()
+                                    }
+                                    className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-md border border-gray-300 bg-white text-gray-500 transition hover:border-green-600"
+                                >
+                                    {evidencePreview ? (
+                                        <img
+                                            src={evidencePreview}
+                                            alt="Preview bukti progres"
+                                            className="max-h-40 w-full object-contain"
+                                        />
+                                    ) : (
+                                        <ImageUp size={38} />
+                                    )}
+                                </button>
+
+                                {progressForm.data.evidence && (
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        {progressForm.data.evidence.name}
+                                    </p>
+                                )}
+
+                                {progressForm.errors.evidence && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {progressForm.errors.evidence}
                                     </p>
                                 )}
                             </div>
@@ -1381,7 +1767,7 @@ export default function TicketShow({
                                         )
                                     }
                                     placeholder="Jelaskan bagian pekerjaan yang masih perlu diperbaiki..."
-                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-red-500"
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-red-500 text-gray-600"
                                 />
 
                                 {rejectVerificationForm

@@ -354,7 +354,7 @@ class TicketController extends Controller
         return redirect()
             ->route(
                 'tickets.show',
-                $ticket->code
+                $ticket->id
             )
             ->with(
                 'success',
@@ -478,7 +478,7 @@ class TicketController extends Controller
 
                 $ticket->update([
                     'status_id' => $this->statusId(
-                        'waiting_verification'
+                        'assigned'
                     ),
 
                     'approved_by' => $approverId,
@@ -552,7 +552,7 @@ class TicketController extends Controller
         return redirect()
             ->route(
                 'tickets.show',
-                $ticket->code
+                $ticket->id
             )
             ->with(
                 'success',
@@ -695,7 +695,7 @@ class TicketController extends Controller
                 'spareparts' => $spareparts,
 
                 'can' => [
-                    'updateProgress' => $this->canUpdateTicket(
+                    'update_progress' => $this->canUpdateTicket(
                         $ticket
                     ),
 
@@ -788,7 +788,6 @@ class TicketController extends Controller
                             'assigned',
                             'in_progress',
                             'waiting_sparepart',
-                            'rejected',
                         ],
                         true
                     ),
@@ -1298,7 +1297,6 @@ class TicketController extends Controller
                     'assigned',
                     'in_progress',
                     'waiting_sparepart',
-                    'rejected',
                 ],
                 true
             )
@@ -1439,6 +1437,74 @@ class TicketController extends Controller
                 )
                 ->values();
 
+        $technicians =
+            $ticket
+                ->technicians
+                ->map(
+                    fn ($technician) => [
+                        'id' => $technician->id,
+
+                        'name' => $this->employeeName(
+                            $technician->employee
+                        ),
+
+                        'is_pic' => $technician->role === 'pic',
+                    ]
+                )
+                ->values();
+
+        $histories = $ticket->relationLoaded(
+            'logs'
+        )
+            ? $ticket
+                ->logs
+                ->map(
+                    fn ($log) => [
+                        'id' => $log->id,
+
+                        'action' => $log->action,
+
+                        'action_label' => $log->toStatus?->name ??
+                            $log->action,
+
+                        'description' => $log->description,
+
+                        'actor' => $this->employeeName(
+                            $log->createdBy
+                        ),
+
+                        'created_at' => optional(
+                            $log->created_at
+                        )->format(
+                            'd-m-Y H:i'
+                        ),
+                    ]
+                )
+            : collect();
+
+        $documentations = $ticket->relationLoaded(
+            'documentations'
+        )
+            ? $ticket
+                ->documentations
+                ->map(
+                    fn ($documentation) => [
+                        'id' => $documentation->id,
+
+                        'image' => Storage::disk('public')
+                            ->url(
+                                $documentation->image_url
+                            ),
+
+                        'created_at' => optional(
+                            $documentation->created_at
+                        )->format(
+                            'd-m-Y H:i'
+                        ),
+                    ]
+                )
+            : collect();
+
         return [
             'id' => $ticket->id,
 
@@ -1484,6 +1550,12 @@ class TicketController extends Controller
             'member' => $members->join(', '),
 
             'members' => $members,
+
+            'technicians' => $technicians,
+
+            'histories' => $histories,
+
+            'documentations' => $documentations,
 
             'status' => $ticket->status?->code,
 
