@@ -13,6 +13,7 @@ use App\Models\Ticket\TicketStatusModel;
 use App\Models\Ticket\TicketTechnicianModel;
 use App\Models\User;
 use App\Models\UserRoleModel;
+use App\Services\UpdateSparepartLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ class TicketController extends Controller
 
     public function index(Request $request): Response
     {
+        $userId = Auth::user()->id;
         $tickets = TicketModel::query()
             ->with([
                 'reporter:id,first_name,last_name',
@@ -42,9 +44,9 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('status'),
-                fn ($query) => $query->whereHas(
+                fn($query) => $query->whereHas(
                     'status',
-                    fn ($status) => $status->where(
+                    fn($status) => $status->where(
                         'code',
                         $request->string('status')
                     )
@@ -53,7 +55,7 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('priority'),
-                fn ($query) => $query->where(
+                fn($query) => $query->where(
                     'priority',
                     $request->string('priority')
                 )
@@ -61,9 +63,9 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('technician_id'),
-                fn ($query) => $query->whereHas(
+                fn($query) => $query->whereHas(
                     'technicians',
-                    fn ($q) => $q->where(
+                    fn($q) => $q->where(
                         'employee_id',
                         $request->integer('technician_id')
                     )
@@ -111,7 +113,7 @@ class TicketController extends Controller
 
                             ->orWhereHas(
                                 'division',
-                                fn ($division) => $division->where(
+                                fn($division) => $division->where(
                                     'name',
                                     'ilike',
                                     "%{$search}%"
@@ -145,7 +147,7 @@ class TicketController extends Controller
             ->withQueryString();
 
         $tickets->through(
-            fn (TicketModel $ticket) => $this->ticketIndexResource($ticket)
+            fn(TicketModel $ticket) => $this->ticketIndexResource($ticket)
         );
 
         $technicians = $this->maintenanceTechnicians();
@@ -176,6 +178,8 @@ class TicketController extends Controller
                         'maintenance_verifier'
                     ),
                 ],
+
+                'userId' => $userId
             ]
         );
     }
@@ -309,11 +313,11 @@ class TicketController extends Controller
                 if ($request->hasFile('damage_photo')) {
                     $photoPath =
                         $request
-                            ->file('damage_photo')
-                            ->store(
-                                'maintenance/tickets',
-                                'public'
-                            );
+                        ->file('damage_photo')
+                        ->store(
+                            'maintenance/tickets',
+                            'public'
+                        );
                 }
 
                 $ticket = TicketModel::create([
@@ -658,7 +662,7 @@ class TicketController extends Controller
 
             'technicians.employee:id,first_name,last_name',
 
-            'logs' => fn ($query) => $query->orderBy(
+            'logs' => fn($query) => $query->orderBy(
                 'created_at'
             ),
 
@@ -675,15 +679,15 @@ class TicketController extends Controller
 
         $spareparts =
             SparepartModel::query()
-                ->select([
-                    'id',
-                    'code',
-                    'name',
-                    'stock',
-                    'unit',
-                ])
-                ->orderBy('name')
-                ->get();
+            ->select([
+                'id',
+                'code',
+                'name',
+                'stock',
+                'unit',
+            ])
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render(
             'tickets/show',
@@ -831,11 +835,11 @@ class TicketController extends Controller
 
                     $path =
                         $request
-                            ->file('evidence')
-                            ->store(
-                                'maintenance/tickets/progress',
-                                'public'
-                            );
+                        ->file('evidence')
+                        ->store(
+                            'maintenance/tickets/progress',
+                            'public'
+                        );
 
                     TicketDocumentationModel::create([
                         'ticket_id' => $ticket->id,
@@ -872,15 +876,8 @@ class TicketController extends Controller
                         'created_at' => now(),
                     ]);
 
-                    /*
-                     * Di sinilah stock sparepart
-                     * nantinya dikurangi.
-                     *
-                     * Saya sarankan panggil service
-                     * stock Anda di sini supaya
-                     * sparepart_stock_logs juga
-                     * otomatis tercatat.
-                     */
+                    $note = "Pengurangan stok dari tiket " . $ticket->code;
+                    UpdateSparepartLogService::reduce($item['id'], $item['quantity'], $note);
                 }
             }
         );
@@ -1161,13 +1158,13 @@ class TicketController extends Controller
 
         $employee =
             User::query()
-                ->select([
-                    'id',
-                    'id_karyawan',
-                    'first_name',
-                    'last_name',
-                ])
-                ->find($employeeId);
+            ->select([
+                'id',
+                'id_karyawan',
+                'first_name',
+                'last_name',
+            ])
+            ->find($employeeId);
 
         if (! $employee) {
             return null;
@@ -1180,8 +1177,8 @@ class TicketController extends Controller
 
             'name' => trim(
                 $employee->first_name
-                    .' '
-                    .$employee->last_name
+                    . ' '
+                    . $employee->last_name
             ),
         ];
     }
@@ -1267,13 +1264,13 @@ class TicketController extends Controller
             ->get()
 
             ->map(
-                fn ($employee) => [
+                fn($employee) => [
                     'id' => $employee->id,
 
                     'name' => trim(
                         $employee->first_name
-                            .' '
-                            .$employee->last_name
+                            . ' '
+                            . $employee->last_name
                     ),
                 ]
             );
@@ -1326,13 +1323,13 @@ class TicketController extends Controller
 
         $lastTicket =
             TicketModel::query()
-                ->where(
-                    'code',
-                    'like',
-                    "{$prefix}%"
-                )
-                ->orderByDesc('id')
-                ->first();
+            ->where(
+                'code',
+                'like',
+                "{$prefix}%"
+            )
+            ->orderByDesc('id')
+            ->first();
 
         $lastSequence = 0;
 
@@ -1345,7 +1342,7 @@ class TicketController extends Controller
         }
 
         return $prefix
-            .str_pad(
+            . str_pad(
                 $lastSequence + 1,
                 4,
                 '0',
@@ -1359,11 +1356,11 @@ class TicketController extends Controller
 
         $pic =
             $ticket
-                ->technicians
-                ->firstWhere(
-                    'role',
-                    'pic'
-                );
+            ->technicians
+            ->firstWhere(
+                'role',
+                'pic'
+            );
 
         return [
             'id' => $ticket->id,
@@ -1394,8 +1391,20 @@ class TicketController extends Controller
             'technician' => $pic
                 ? $this->employeeName(
                     $pic->employee
+                ) : null,
+
+                
+            'technician_ids' =>
+            $ticket
+                ->technicians
+                ->pluck(
+                    'employee_id'
                 )
-                : null,
+                ->map(
+                    fn($id) =>
+                    (int) $id
+                )
+                ->values(),
 
             'status' => $ticket->status?->code,
 
@@ -1417,92 +1426,92 @@ class TicketController extends Controller
 
         $pic =
             $ticket
-                ->technicians
-                ->firstWhere(
-                    'role',
-                    'pic'
-                );
+            ->technicians
+            ->firstWhere(
+                'role',
+                'pic'
+            );
 
         $members =
             $ticket
-                ->technicians
-                ->where(
-                    'role',
-                    'member'
+            ->technicians
+            ->where(
+                'role',
+                'member'
+            )
+            ->map(
+                fn($item) => $this->employeeName(
+                    $item->employee
                 )
-                ->map(
-                    fn ($item) => $this->employeeName(
-                        $item->employee
-                    )
-                )
-                ->values();
+            )
+            ->values();
 
         $technicians =
             $ticket
-                ->technicians
-                ->map(
-                    fn ($technician) => [
-                        'id' => $technician->id,
+            ->technicians
+            ->map(
+                fn($technician) => [
+                    'id' => $technician->id,
 
-                        'name' => $this->employeeName(
-                            $technician->employee
-                        ),
+                    'name' => $this->employeeName(
+                        $technician->employee
+                    ),
 
-                        'is_pic' => $technician->role === 'pic',
-                    ]
-                )
-                ->values();
+                    'is_pic' => $technician->role === 'pic',
+                ]
+            )
+            ->values();
 
         $histories = $ticket->relationLoaded(
             'logs'
         )
             ? $ticket
-                ->logs
-                ->map(
-                    fn ($log) => [
-                        'id' => $log->id,
+            ->logs
+            ->map(
+                fn($log) => [
+                    'id' => $log->id,
 
-                        'action' => $log->action,
+                    'action' => $log->action,
 
-                        'action_label' => $log->toStatus?->name ??
-                            $log->action,
+                    'action_label' => $log->toStatus?->name ??
+                        $log->action,
 
-                        'description' => $log->description,
+                    'description' => $log->description,
 
-                        'actor' => $this->employeeName(
-                            $log->createdBy
-                        ),
+                    'actor' => $this->employeeName(
+                        $log->createdBy
+                    ),
 
-                        'created_at' => optional(
-                            $log->created_at
-                        )->format(
-                            'd-m-Y H:i'
-                        ),
-                    ]
-                )
+                    'created_at' => optional(
+                        $log->created_at
+                    )->format(
+                        'd-m-Y H:i'
+                    ),
+                ]
+            )
             : collect();
 
         $documentations = $ticket->relationLoaded(
             'documentations'
         )
             ? $ticket
-                ->documentations
-                ->map(
-                    fn ($documentation) => [
-                        'id' => $documentation->id,
+            ->documentations
+            ->map(
+                fn($documentation) => [
+                    'id' => $documentation->id,
 
-                        'image' => Storage::disk('public')
-                            ->url(
-                                $documentation->image_url
-                            ),
-
-                        'created_at' => optional(
-                            $documentation->created_at
-                        )->format(
-                            'd-m-Y H:i'
+                    'image' => Storage::disk('public')
+                        ->url(
+                            $documentation->image_url
                         ),
-                    ]
-                )
+
+                    'created_at' => optional(
+                        $documentation->created_at
+                    )->format(
+                        'd-m-Y H:i'
+                    ),
+                ]
+            )
             : collect();
 
         return [
@@ -1569,9 +1578,9 @@ class TicketController extends Controller
 
             'image' => $ticket->damage_photo_url
                 ? Storage::disk('public')
-                    ->url(
-                        $ticket->damage_photo_url
-                    )
+                ->url(
+                    $ticket->damage_photo_url
+                )
                 : null,
 
             'created_at' => optional(
@@ -1606,34 +1615,34 @@ class TicketController extends Controller
                 'logs'
             )
                 ? $ticket
-                    ->logs
-                    ->map(
-                        fn ($log) => [
-                            'id' => $log->id,
+                ->logs
+                ->map(
+                    fn($log) => [
+                        'id' => $log->id,
 
-                            'action' => $log->action,
+                        'action' => $log->action,
 
-                            'from_status' => $log->fromStatus?->code,
+                        'from_status' => $log->fromStatus?->code,
 
-                            'status' => $log->toStatus?->code,
+                        'status' => $log->toStatus?->code,
 
-                            'status_label' => $this->statusLabel(
-                                $log->toStatus?->code
-                            ),
+                        'status_label' => $this->statusLabel(
+                            $log->toStatus?->code
+                        ),
 
-                            'description' => $log->description,
+                        'description' => $log->description,
 
-                            'created_at' => optional(
-                                $log->created_at
-                            )->format(
-                                'd-m-Y H:i'
-                            ),
+                        'created_at' => optional(
+                            $log->created_at
+                        )->format(
+                            'd-m-Y H:i'
+                        ),
 
-                            'created_by' => $this->employeeName(
-                                $log->createdBy
-                            ),
-                        ]
-                    )
+                        'created_by' => $this->employeeName(
+                            $log->createdBy
+                        ),
+                    ]
+                )
                 : [],
         ];
     }
@@ -1648,8 +1657,8 @@ class TicketController extends Controller
 
         return trim(
             $employee->first_name
-                .' '
-                .$employee->last_name
+                . ' '
+                . $employee->last_name
         );
     }
 

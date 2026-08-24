@@ -229,9 +229,9 @@ export default function TicketShow({
 
     const progressForm = useForm<{
         progress_status:
-            | 'in_progress'
-            | 'waiting_sparepart'
-            | 'waiting_verification';
+        | 'in_progress'
+        | 'waiting_sparepart'
+        | 'waiting_verification';
 
         description: string;
 
@@ -382,9 +382,9 @@ export default function TicketShow({
                     (item) =>
                         item.id === sparepartId
                             ? {
-                                  ...item,
-                                  quantity: item.quantity + quantity,
-                              }
+                                ...item,
+                                quantity: item.quantity + quantity,
+                            }
                             : item,
                 ),
             );
@@ -590,11 +590,10 @@ export default function TicketShow({
                     </div>
 
                     <span
-                        className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${
-                            statusStyles[
-                                ticket.status
-                            ]
-                        }`}
+                        className={`inline-flex rounded-full px-4 py-2 text-sm font-bold ${statusStyles[
+                            ticket.status
+                        ]
+                            }`}
                     >
                         {ticket.status_label}
                     </span>
@@ -658,34 +657,13 @@ export default function TicketShow({
                                             />
 
                                             <span className="text-sm">
-                                                Tidak
-                                                ada foto
-                                                kerusakan
+                                                Tidak ada foto kerusakan
                                             </span>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* CREATED */}
-
-                                <div className="mt-3 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                                    <Clock
-                                        size={18}
-                                        className="mt-0.5 text-gray-500"
-                                    />
-
-                                    <div>
-                                        <div className="text-xs text-gray-500">
-                                            Tiket
-                                            Dibuat
-                                        </div>
-
-                                        <div className="mt-0.5 text-sm font-semibold text-gray-800">
-                                            {ticket.created_at ??
-                                                '-'}
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             {/* INFORMATION */}
@@ -734,7 +712,7 @@ export default function TicketShow({
                                         <span
                                             className={
                                                 ticket.priority ===
-                                                'urgent'
+                                                    'urgent'
                                                     ? 'font-bold text-red-600'
                                                     : ''
                                             }
@@ -756,9 +734,7 @@ export default function TicketShow({
                                             }
                                         />
 
-                                        Deskripsi
-                                        Kerusakan /
-                                        Pekerjaan
+                                        Deskripsi Kerusakan / Pekerjaan
                                     </div>
 
                                     <div className="whitespace-pre-line text-sm font-medium leading-6 text-gray-800">
@@ -768,76 +744,99 @@ export default function TicketShow({
                                     </div>
                                 </div>
 
-                                {/* LOCATION */}
-
-                                <div className="mt-3 rounded-xl border border-[#68b59b] bg-[#d9eee7] px-5 py-4 text-[#185c49]">
-                                    <div className="mb-2 text-xs text-gray-500">
-                                        Lokasi
-                                        Kerusakan
-                                    </div>
-
-                                    {(ticket.machine_code ||
-                                        ticket.machine_name) && (
-                                        <div className="flex items-start gap-2 text-sm font-bold">
-                                            <Cog
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    {ticket.created_at && (
+                                        <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                            <Calendar
                                                 size={
-                                                    17
+                                                    19
                                                 }
-                                                className="mt-0.5 shrink-0"
+                                                className="text-gray-600"
                                             />
 
-                                            <span>
-                                                {ticket.machine_code ??
-                                                    ''}
+                                            <div>
+                                                <div className="text-xs text-gray-500">
+                                                    Tiket Dibuat
+                                                </div>
 
-                                                {ticket.machine_code &&
-                                                    ticket.machine_name
-                                                    ? ' - '
-                                                    : ''}
-
-                                                {ticket.machine_name ??
-                                                    ''}
-                                            </span>
+                                                <div className="font-bold text-gray-700">
+                                                    {
+                                                        ticket.created_at
+                                                    }
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
-                                    <div className="mt-1 flex items-center gap-2 text-sm font-bold">
-                                        <MapPin
-                                            size={
-                                                17
-                                            }
-                                        />
+                                    {/* LOCATION */}
 
-                                        {ticket.location ??
-                                            '-'}
-                                    </div>
-                                </div>
+                                    <div className="mt-3 rounded-xl border border-[#68b59b] bg-[#d9eee7] px-5 py-4 text-[#185c49]">
+                                        <div className="mb-2 text-xs text-gray-500">
+                                            Lokasi Kerusakan
+                                        </div>
 
-                                {/* DEADLINE */}
+                                        {(ticket.machine_code ||
+                                            ticket.machine_name) && (
+                                                <div className="flex items-start gap-2 text-sm font-bold">
+                                                    <Cog
+                                                        size={
+                                                            17
+                                                        }
+                                                        className="mt-0.5 shrink-0"
+                                                    />
 
-                                {ticket.deadline && (
-                                    <div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-                                        <Calendar
-                                            size={
-                                                19
-                                            }
-                                            className="text-orange-600"
-                                        />
+                                                    <span>
+                                                        {ticket.machine_code ??
+                                                            ''}
 
-                                        <div>
-                                            <div className="text-xs text-gray-500">
-                                                Deadline
-                                                Pengerjaan
-                                            </div>
+                                                        {ticket.machine_code &&
+                                                            ticket.machine_name
+                                                            ? ' - '
+                                                            : ''}
 
-                                            <div className="font-bold text-orange-700">
-                                                {
-                                                    ticket.deadline
+                                                        {ticket.machine_name ??
+                                                            ''}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                        <div className="mt-1 flex items-center gap-2 text-sm font-bold">
+                                            <MapPin
+                                                size={
+                                                    17
                                                 }
-                                            </div>
+                                            />
+
+                                            {ticket.location ??
+                                                '-'}
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* DEADLINE */}
+
+                                    {ticket.deadline && (
+                                        <div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+                                            <Calendar
+                                                size={
+                                                    19
+                                                }
+                                                className="text-orange-600"
+                                            />
+
+                                            <div>
+                                                <div className="text-xs text-gray-500">
+                                                    Deadline Pengerjaan
+                                                </div>
+
+                                                <div className="font-bold text-orange-700">
+                                                    {
+                                                        ticket.deadline
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -845,15 +844,14 @@ export default function TicketShow({
                             TECHNICIAN
                         ==================================================== */}
 
-                        <div className="mt-6 border-t border-gray-200 pt-6">
+                        <div className="mt-6 border-t border-gray-200 pt-3">
                             <div className="mb-3 flex items-center gap-2">
                                 <UsersRound
                                     size={19}
                                 />
 
                                 <h2 className="font-bold text-gray-900">
-                                    Teknisi
-                                    Pengerjaan
+                                    Teknisi Pengerjaan
                                 </h2>
                             </div>
 
@@ -897,8 +895,7 @@ export default function TicketShow({
                                 </div>
                             ) : (
                                 <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center text-sm text-gray-400">
-                                    Teknisi belum
-                                    ditentukan.
+                                    Teknisi belum ditentukan.
                                 </div>
                             )}
                         </div>
@@ -909,39 +906,39 @@ export default function TicketShow({
 
                         {ticket.status ===
                             'rejected' && (
-                            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
-                                <div className="flex items-center gap-2 font-bold text-red-700">
-                                    <XCircle
-                                        size={20}
-                                    />
+                                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                                    <div className="flex items-center gap-2 font-bold text-red-700">
+                                        <XCircle
+                                            size={20}
+                                        />
 
-                                    Tiket Ditolak
-                                </div>
-
-                                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                                    <InfoBox label="Ditolak Oleh">
-                                        {ticket.rejected_by ??
-                                            '-'}
-                                    </InfoBox>
-
-                                    <InfoBox label="Waktu Penolakan">
-                                        {ticket.rejected_at ??
-                                            '-'}
-                                    </InfoBox>
-                                </div>
-
-                                <div className="mt-3 rounded-lg bg-white px-4 py-3">
-                                    <div className="text-xs text-gray-500">
-                                        Alasan
+                                        Tiket Ditolak
                                     </div>
 
-                                    <div className="mt-1 text-sm font-medium text-red-700">
-                                        {ticket.rejection_reason ??
-                                            '-'}
+                                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                        <InfoBox label="Ditolak Oleh">
+                                            {ticket.rejected_by ??
+                                                '-'}
+                                        </InfoBox>
+
+                                        <InfoBox label="Waktu Penolakan">
+                                            {ticket.rejected_at ??
+                                                '-'}
+                                        </InfoBox>
+                                    </div>
+
+                                    <div className="mt-3 rounded-lg bg-white px-4 py-3">
+                                        <div className="text-xs text-gray-500">
+                                            Alasan
+                                        </div>
+
+                                        <div className="mt-1 text-sm font-medium text-red-700">
+                                            {ticket.rejection_reason ??
+                                                '-'}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
                         {/* ====================================================
                             COMPLETED
@@ -949,35 +946,35 @@ export default function TicketShow({
 
                         {ticket.status ===
                             'completed' && (
-                            <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5">
-                                <div className="flex items-center gap-2 font-bold text-green-700">
-                                    <CheckCircle2
-                                        size={20}
-                                    />
+                                <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5">
+                                    <div className="flex items-center gap-2 font-bold text-green-700">
+                                        <CheckCircle2
+                                            size={20}
+                                        />
 
-                                    Pekerjaan
-                                    Selesai dan
-                                    Terverifikasi
+                                        Pekerjaan
+                                        Selesai dan
+                                        Terverifikasi
+                                    </div>
+
+                                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                        <InfoBox label="Diverifikasi Oleh">
+                                            {ticket.verified_by ??
+                                                '-'}
+                                        </InfoBox>
+
+                                        <InfoBox label="Waktu Verifikasi">
+                                            {ticket.verified_at ??
+                                                '-'}
+                                        </InfoBox>
+
+                                        <InfoBox label="Selesai">
+                                            {ticket.completed_at ??
+                                                '-'}
+                                        </InfoBox>
+                                    </div>
                                 </div>
-
-                                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                    <InfoBox label="Diverifikasi Oleh">
-                                        {ticket.verified_by ??
-                                            '-'}
-                                    </InfoBox>
-
-                                    <InfoBox label="Waktu Verifikasi">
-                                        {ticket.verified_at ??
-                                            '-'}
-                                    </InfoBox>
-
-                                    <InfoBox label="Selesai">
-                                        {ticket.completed_at ??
-                                            '-'}
-                                    </InfoBox>
-                                </div>
-                            </div>
-                        )}
+                            )}
 
                         {/* ====================================================
                             ACTION
@@ -1024,7 +1021,7 @@ export default function TicketShow({
 
                             {can.verify &&
                                 ticket.status ===
-                                    'waiting_verification' && (
+                                'waiting_verification' && (
                                     <>
                                         <button
                                             type="button"
@@ -1090,88 +1087,88 @@ export default function TicketShow({
                         </div>
 
                         <div className="p-6">
-                        {ticket.histories
-                            .length === 0 ? (
-                            <div className="py-8 text-center text-sm text-gray-400">
-                                Belum ada
-                                histori tiket.
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                {ticket.histories.map(
-                                    (
-                                        history,
-                                        index,
-                                    ) => (
-                                        <div
-                                            key={
-                                                history.id
-                                            }
-                                            className="relative flex gap-4 pb-7 last:pb-0"
-                                        >
-                                            {/* LINE */}
+                            {ticket.histories
+                                .length === 0 ? (
+                                <div className="py-8 text-center text-sm text-gray-400">
+                                    Belum ada
+                                    histori tiket.
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    {ticket.histories.map(
+                                        (
+                                            history,
+                                            index,
+                                        ) => (
+                                            <div
+                                                key={
+                                                    history.id
+                                                }
+                                                className="relative flex gap-4 pb-7 last:pb-0"
+                                            >
+                                                {/* LINE */}
 
-                                            {index !==
-                                                ticket
-                                                    .histories
-                                                    .length -
+                                                {index !==
+                                                    ticket
+                                                        .histories
+                                                        .length -
                                                     1 && (
-                                                <div className="absolute left-[15px] top-8 h-[calc(100%-20px)] w-[2px] bg-gray-200" />
-                                            )}
+                                                        <div className="absolute left-[15px] top-8 h-[calc(100%-20px)] w-[2px] bg-gray-200" />
+                                                    )}
 
-                                            {/* DOT */}
+                                                {/* DOT */}
 
-                                            <div className="relative z-10 mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
-                                                <CheckCircle2
-                                                    size={
-                                                        16
-                                                    }
-                                                />
-                                            </div>
-
-                                            {/* CONTENT */}
-
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex flex-wrap items-start justify-between gap-2">
-                                                    <div>
-                                                        <div className="font-bold text-gray-800">
-                                                            {
-                                                                history.action_label
-                                                            }
-                                                        </div>
-
-                                                        <div className="mt-0.5 text-xs text-gray-500">
-                                                            Oleh:{' '}
-                                                            {history.actor ??
-                                                                'System'}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="whitespace-nowrap text-xs text-gray-500">
-                                                        {
-                                                            history.created_at
+                                                <div className="relative z-10 mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
+                                                    <CheckCircle2
+                                                        size={
+                                                            16
                                                         }
-                                                    </div>
+                                                    />
                                                 </div>
 
-                                                {history.description && (
-                                                    <div className="mt-2 rounded-lg bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-600">
-                                                        {
-                                                            history.description
-                                                        }
+                                                {/* CONTENT */}
+
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex flex-wrap items-start justify-between gap-2">
+                                                        <div>
+                                                            <div className="font-bold text-gray-800">
+                                                                {
+                                                                    history.action_label
+                                                                }
+                                                            </div>
+
+                                                            <div className="mt-0.5 text-xs text-gray-500">
+                                                                Oleh:{' '}
+                                                                {history.actor ??
+                                                                    'System'}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="whitespace-nowrap text-xs text-gray-500">
+                                                            {
+                                                                history.created_at
+                                                            }
+                                                        </div>
                                                     </div>
-                                                )}
+
+                                                    {history.description && (
+                                                        <div className="mt-2 rounded-lg bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-600">
+                                                            {
+                                                                history.description
+                                                            }
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ),
-                                )}
-                            </div>
-                        )}
+                                        ),
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="overflow-hidden rounded-[20px] bg-white shadow-md">
-                        <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+                        <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-4">
                             <ImageIcon size={20} />
 
                             <h2 className="font-bold text-gray-900">
@@ -1204,8 +1201,10 @@ export default function TicketShow({
                                                     />
                                                 </a>
 
-                                                <figcaption className="px-3 py-2 text-xs text-gray-500">
-                                                    {documentation.created_at}
+                                                <figcaption>
+                                                    <div className="text-gray-700 text-center font-medium">
+                                                        {documentation.created_at}
+                                                    </div>
                                                 </figcaption>
                                             </figure>
                                         ),
@@ -1262,7 +1261,7 @@ export default function TicketShow({
                                     },
                                     {
                                         value: 'waiting_sparepart',
-                                        label: 'Tambah Stok Sparepart',
+                                        label: 'Menunggu Sparepart',
                                     },
                                     {
                                         value: 'waiting_verification',
@@ -1271,12 +1270,11 @@ export default function TicketShow({
                                 ].map((statusOption) => (
                                     <label
                                         key={statusOption.value}
-                                        className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition ${
-                                            progressForm.data.progress_status ===
+                                        className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition ${progressForm.data.progress_status ===
                                             statusOption.value
-                                                ? 'border-green-600 bg-green-50 text-green-700'
-                                                : 'border-gray-300 bg-white text-gray-700 hover:border-green-500'
-                                        }`}
+                                            ? 'border-green-600 bg-green-50 text-green-700'
+                                            : 'border-gray-300 bg-white text-gray-700 hover:border-green-500'
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -1290,9 +1288,9 @@ export default function TicketShow({
                                                 progressForm.setData(
                                                     'progress_status',
                                                     statusOption.value as
-                                                        | 'in_progress'
-                                                        | 'waiting_sparepart'
-                                                        | 'waiting_verification',
+                                                    | 'in_progress'
+                                                    | 'waiting_sparepart'
+                                                    | 'waiting_verification',
                                                 )
                                             }
                                             className="accent-green-600"
@@ -1304,54 +1302,54 @@ export default function TicketShow({
 
                             {progressForm.errors
                                 .progress_status && (
-                                <p className="mt-1 text-xs text-red-600">
-                                    {
-                                        progressForm
-                                            .errors
-                                            .progress_status
-                                    }
-                                </p>
-                            )}
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {
+                                            progressForm
+                                                .errors
+                                                .progress_status
+                                        }
+                                    </p>
+                                )}
 
                             {/* INFORMATION */}
 
                             {progressForm.data
                                 .progress_status ===
                                 'waiting_sparepart' && (
-                                <div className="mt-3 flex gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
-                                    <Package
-                                        size={
-                                            18
-                                        }
-                                        className="mt-0.5 shrink-0"
-                                    />
+                                    <div className="mt-3 flex gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+                                        <Package
+                                            size={
+                                                18
+                                            }
+                                            className="mt-0.5 shrink-0"
+                                        />
 
-                                    Pengerjaan akan
-                                    ditandai sedang
-                                    menunggu
-                                    sparepart.
-                                </div>
-                            )}
+                                        Pengerjaan akan
+                                        ditandai sedang
+                                        menunggu
+                                        sparepart.
+                                    </div>
+                                )}
 
                             {progressForm.data
                                 .progress_status ===
                                 'waiting_verification' && (
-                                <div className="mt-3 flex gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
-                                    <ShieldCheck
-                                        size={
-                                            18
-                                        }
-                                        className="mt-0.5 shrink-0"
-                                    />
+                                    <div className="mt-3 flex gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
+                                        <ShieldCheck
+                                            size={
+                                                18
+                                            }
+                                            className="mt-0.5 shrink-0"
+                                        />
 
-                                    Pekerjaan belum
-                                    dianggap selesai.
-                                    Tiket akan
-                                    menunggu
-                                    Maintenance
-                                    Verification.
-                                </div>
-                            )}
+                                        Pekerjaan belum
+                                        dianggap selesai.
+                                        Tiket akan
+                                        menunggu
+                                        Maintenance
+                                        Verification.
+                                    </div>
+                                )}
 
                             {/* SPAREPART */}
 
@@ -1498,14 +1496,14 @@ export default function TicketShow({
 
                                 {progressForm.errors
                                     .description && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {
-                                            progressForm
-                                                .errors
-                                                .description
-                                        }
-                                    </p>
-                                )}
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {
+                                                progressForm
+                                                    .errors
+                                                    .description
+                                            }
+                                        </p>
+                                    )}
                             </div>
 
                             {/* EVIDENCE */}
@@ -1626,18 +1624,11 @@ export default function TicketShow({
                                         }
                                     />
 
-                                    Konfirmasi
-                                    Penyelesaian
+                                    Konfirmasi Penyelesaian
                                 </div>
 
                                 <p className="mt-2 text-sm leading-6 text-green-700">
-                                    Pastikan
-                                    pekerjaan sudah
-                                    diperiksa dan
-                                    kondisi telah
-                                    sesuai sebelum
-                                    tiket dinyatakan
-                                    selesai.
+                                    Pastikan pekerjaan sudah diperiksa dan kondisi telah sesuai sebelum tiket dinyatakan selesai.
                                 </p>
                             </div>
 
@@ -1773,14 +1764,14 @@ export default function TicketShow({
                                 {rejectVerificationForm
                                     .errors
                                     .reason && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {
-                                            rejectVerificationForm
-                                                .errors
-                                                .reason
-                                        }
-                                    </p>
-                                )}
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {
+                                                rejectVerificationForm
+                                                    .errors
+                                                    .reason
+                                            }
+                                        </p>
+                                    )}
                             </div>
 
                             <div className="mt-5 flex justify-end gap-3">

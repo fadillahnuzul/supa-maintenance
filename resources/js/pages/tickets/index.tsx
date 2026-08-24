@@ -43,6 +43,8 @@ type TicketRow = {
     priority_label: string;
 
     reporter: string | null;
+
+    technician_ids : number[];
     technician: string | null;
 
     status: TicketStatus;
@@ -98,6 +100,8 @@ type Props = {
         approve: boolean;
         verify: boolean;
     };
+
+    userId : number;
 };
 
 /*
@@ -129,6 +133,7 @@ const statusStyles: Record<TicketStatus, string> = {
         'bg-[#dcfce7] text-[#166534]',
 };
 
+
 /*
 |--------------------------------------------------------------------------
 | COMPONENT
@@ -140,6 +145,7 @@ export default function TicketIndex({
     technicians,
     filters,
     can,
+    userId
 }: Props) {
     /*
     |--------------------------------------------------------------------------
@@ -401,10 +407,12 @@ export default function TicketIndex({
          */
 
         if (
+            (
             ticket.status === 'assigned' ||
             ticket.status === 'in_progress' ||
             ticket.status ===
                 'waiting_sparepart'
+            ) && ticket.technician_ids.includes(userId)
         ) {
             return (
                 <div className="flex items-center justify-center gap-2">
