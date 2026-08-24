@@ -53,22 +53,21 @@ export default function SettingsProfile({
     const selectPhoto = (file?: File | null) => {
         if (!file) return;
 
-        photoForm.setData('photo', file);
-
         const objectUrl = URL.createObjectURL(file);
         setPreview(objectUrl);
-    };
 
-    const uploadPhoto = () => {
-        if (!photoForm.data.photo) {
-            fileInputRef.current?.click();
-            return;
-        }
+        photoForm.setData('photo', file);
 
-        photoForm.post(updatePhotoUrl, {
-            forceFormData: true,
-            preserveScroll: true,
-        });
+        router.post(
+            updatePhotoUrl,
+            {
+                photo: file,
+            },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+            },
+        );
     };
 
     const logout = () => {
@@ -116,7 +115,7 @@ export default function SettingsProfile({
 
                             <button
                                 type="button"
-                                onClick={uploadPhoto}
+                                onClick={() => fileInputRef.current?.click()}
                                 disabled={photoForm.processing}
                                 className="mt-3 flex h-9 items-center gap-2 rounded-lg bg-[#7e807f] px-3 text-xs font-medium text-white transition hover:bg-[#6e706f] disabled:opacity-50"
                             >

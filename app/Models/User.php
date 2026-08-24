@@ -28,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'id_karyawan', 'email', 'password'])]
+
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -36,6 +36,27 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $table = 'core.employees';
+    protected $fillable = [
+        'id_karyawan',
+        'first_name',
+        'last_name',
+        'email',
+        'no_telepon',
+        'no_telepon_alt',
+        'birth_place',
+        'birth_date',
+        'marital_status',
+        'nik',
+        'address_ktp',
+        'address_residence',
+        'hire_date',
+        'is_active',
+        'password',
+        'profile_photo_path',
+        'created_at',
+        'updated_at',
+        'deleted_at'
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -47,6 +68,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date',
+            'hire_date' => 'date',
+            'is_active' => 'boolean',
         ];
     }
 

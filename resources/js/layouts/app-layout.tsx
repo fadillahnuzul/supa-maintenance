@@ -60,7 +60,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         )}
 
                         <img
-                            src="/images/default-avatar.jpg"
+                            src={auth.user?.avatar || '/images/default-avatar.jpg'}
                             className="h-14 w-14 rounded-full object-cover"
                             alt="User"
                         />

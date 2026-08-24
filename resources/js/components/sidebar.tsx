@@ -177,7 +177,7 @@ export default function Sidebar({
                 `}
             >
                 <img
-                    src="/images/default-avatar.jpg"
+                    src={auth.user?.avatar || '/images/default-avatar.jpg'}
                     alt="User"
                     className="h-11 w-11 rounded-full object-cover"
                 />

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -39,13 +40,23 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user()?->only([
-                    'id',
-                    'first_name',
-                    'last_name',
-                    'email',
-                    'email_verified_at',
-                ]),
+                'user' => $request->user()
+                    ? [
+                        ...$request->user()->only([
+                            'id',
+                            'first_name',
+                            'last_name',
+                            'email',
+                            'email_verified_at',
+                        ]),
+                        'name' => $request->user()->name,
+                        'avatar' => $request->user()->profile_photo_path
+                            ? Storage::disk('public')->url(
+                                $request->user()->profile_photo_path
+                            )
+                            : null,
+                    ]
+                    : null,
 
                 'roles' => app()->environment('testing')
                     ? []

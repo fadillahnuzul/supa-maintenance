@@ -39,9 +39,6 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('machines', MachineController::class);
 
-    Route::get('/profile', [OwnProfileController::class, 'index'])
-        ->name('profile.index');
-
     Route::prefix('tickets')
         ->name('tickets.')
         ->group(function () {
@@ -169,6 +166,21 @@ Route::middleware('auth')->group(function () {
         OthersettingsController::class,
         'destroyLocation',
     ])->name('other-settings.locations.destroy');
+
+    Route::get('/profile', [
+        OwnProfileController::class,
+        'index',
+    ])->name('settings.profile');
+
+    Route::post('/profile/password', [
+        OwnProfileController::class,
+        'updatePassword',
+    ])->name('settings.profile.password');
+
+    Route::post('/profile/photo', [
+        OwnProfileController::class,
+        'updatePhoto',
+    ])->name('settings.profile.photo');
 });
 
 require __DIR__ . '/settings.php';
