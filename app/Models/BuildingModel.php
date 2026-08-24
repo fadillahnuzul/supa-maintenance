@@ -10,6 +10,8 @@ class BuildingModel extends Model
     use SoftDeletes;
     protected $table = 'core.buildings';
 
+    public $timestamps = false;
+
     protected $primaryKey = 'id';
 
     protected $fillable = [
@@ -18,6 +20,10 @@ class BuildingModel extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function spareparts()

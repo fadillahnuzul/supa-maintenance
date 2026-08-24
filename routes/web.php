@@ -39,10 +39,6 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('machines', MachineController::class);
 
-    // Settings routes
-    Route::get('/othersettings', [OthersettingsController::class, 'index'])
-        ->name('othersettings.index');
-
     Route::get('/profile', [OwnProfileController::class, 'index'])
         ->name('profile.index');
 
@@ -124,6 +120,55 @@ Route::middleware('auth')->group(function () {
                 [RoleController::class, 'destroy']
             )->name('destroy');
         });
+
+    Route::get('/other-settings', [
+        OthersettingsController::class,
+        'index',
+    ])->name('other-settings.index');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Department Production
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/other-settings/departments', [
+        OthersettingsController::class,
+        'storeDepartment',
+    ])->name('other-settings.departments.store');
+
+    Route::put('/other-settings/departments/{department}', [
+        OthersettingsController::class,
+        'updateDepartment',
+    ])->name('other-settings.departments.update');
+
+    Route::delete('/other-settings/departments/{department}', [
+        OthersettingsController::class,
+        'destroyDepartment',
+    ])->name('other-settings.departments.destroy');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Building / Location
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/other-settings/locations', [
+        OthersettingsController::class,
+        'storeLocation',
+    ])->name('other-settings.locations.store');
+
+    Route::put('/other-settings/locations/{location}', [
+        OthersettingsController::class,
+        'updateLocation',
+    ])->name('other-settings.locations.update');
+
+    Route::delete('/other-settings/locations/{location}', [
+        OthersettingsController::class,
+        'destroyLocation',
+    ])->name('other-settings.locations.destroy');
 });
 
 require __DIR__ . '/settings.php';

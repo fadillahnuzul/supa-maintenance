@@ -26,7 +26,7 @@ const menuItems = [
     { name: 'Stok Sparepart', href: '/spareparts', icon: Archive },
     { name: 'Daftar Mesin', href: '/machines', icon: Wrench },
     { name: 'Role Management', href: '/roles', icon: Users },
-    { name: 'Pengaturan Lainnya', href: '/othersettings', icon: Settings },
+    { name: 'Pengaturan Lainnya', href: '/other-settings', icon: Settings },
     { name: 'Pengaturan Profil', href: '/profile', icon: UserCog },
 ];
 
