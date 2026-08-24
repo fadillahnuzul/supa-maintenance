@@ -1,6 +1,10 @@
-import { Head, router, useForm } from '@inertiajs/react';
 import {
-    KeyRound,
+    Head,
+    router,
+    useForm,
+} from '@inertiajs/react';
+
+import {
     Pencil,
     Plus,
     Search,
@@ -10,293 +14,291 @@ import {
     Wrench,
     X,
 } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
 
-type UserRole = 'Supervisor' | 'Operational' | 'Teknisi' | 'Admin Sistem';
-type UserStatus = 'Aktif' | 'Tidak Aktif';
+import {
+    FormEvent,
+    useMemo,
+    useState,
+} from 'react';
+
+type Role = {
+    id: number;
+    code: string;
+    name: string;
+};
+
+type EmployeeOption = {
+    id: number;
+    name: string;
+    email: string;
+};
 
 type UserRow = {
     id: number;
     name: string;
-    email: string;
-    role: UserRole;
-    status: UserStatus;
+    id_karyawan: string;
+    status: string;
     location: string;
     avatar?: string | null;
+    roles: Role[];
 };
 
 type Props = {
-    users?: UserRow[];
-    storeUrl?: string;
-    updateBaseUrl?: string;
-    resetPasswordBaseUrl?: string;
-    toggleStatusBaseUrl?: string;
-    deleteBaseUrl?: string;
+    users: UserRow[];
+    employees: EmployeeOption[];
+    roles: Role[];
 };
-
-const dummyUsers: UserRow[] = [
-    {
-        id: 1,
-        name: 'Haryono',
-        email: 'admin@supasurya.com',
-        role: 'Supervisor',
-        status: 'Aktif',
-        location: 'Gedung B, Lantai 2 (Area Mixing Utama)',
-        avatar: '/images/profile/budi.jpg',
-    },
-    {
-        id: 2,
-        name: 'PPIC',
-        email: 'ppic@supasurya.com',
-        role: 'Operational',
-        status: 'Aktif',
-        location: 'Gedung B, Lantai 2 (Area Mixing Utama)',
-        avatar: '/images/profile/budi.jpg',
-    },
-    {
-        id: 3,
-        name: 'Teknisi',
-        email: 'teknisi@supasurya.com',
-        role: 'Teknisi',
-        status: 'Aktif',
-        location: 'Gedung B, Lantai 2 (Area Mixing Utama)',
-        avatar: '/images/profile/budi.jpg',
-    },
-    {
-        id: 4,
-        name: 'Digicom',
-        email: 'admin@supasurya.com',
-        role: 'Admin Sistem',
-        status: 'Aktif',
-        location: 'Gedung B, Lantai 2 (Area Mixing Utama)',
-        avatar: '/images/profile/budi.jpg',
-    },
-];
-
-const roleStyles: Record<string, string> = {
-    Supervisor: 'border-purple-400 bg-purple-50 text-purple-700',
-    Operational: 'border-lime-400 bg-lime-50 text-lime-700',
-    Teknisi: 'border-blue-700 bg-blue-50 text-blue-700',
-    'Admin Sistem': 'border-green-400 bg-green-50 text-green-700',
-};
-console.log('roleStyles:', dummyUsers.map((user) => ({ role: user.role, style: roleStyles[user.role] })));
-const getRoleStyle = (role: string) =>
-    roleStyles[role] ?? 'border-gray-300 bg-gray-50 text-gray-700';
 
 export default function RoleManagement({
-    users = dummyUsers,
-    storeUrl,
-    updateBaseUrl,
-    resetPasswordBaseUrl,
-    toggleStatusBaseUrl,
-    deleteBaseUrl,
+    users,
+    employees,
+    roles,
 }: Props) {
-    const [localUsers, setLocalUsers] = useState<UserRow[]>(users);
-    const [roleFilter, setRoleFilter] = useState('Semua Role');
-    const [statusFilter, setStatusFilter] = useState('Semua Status');
-    const [search, setSearch] = useState('');
+    const [roleFilter, setRoleFilter] =
+        useState('');
 
-    const [modalType, setModalType] = useState<'create' | 'edit' | 'reset' | null>(null);
-    const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+    const [statusFilter, setStatusFilter] =
+        useState('');
 
-    const userForm = useForm({
-        name: '',
-        role: '' as UserRole | '',
-        email: '',
-        password: '',
+    const [search, setSearch] =
+        useState('');
+
+    const [
+        modalType,
+        setModalType,
+    ] = useState<
+        'create' | 'edit' | null
+    >(null);
+
+    const [
+        selectedUser,
+        setSelectedUser,
+    ] = useState<UserRow | null>(null);
+
+    const form = useForm<{
+        employee_id: number | '';
+        role_ids: number[];
+    }>({
+        employee_id: '',
+        role_ids: [],
     });
 
-    const resetForm = useForm({
-        password: '',
-        password_confirmation: '',
-    });
+    /*
+     * Employee yang belum mempunyai role.
+     */
+    const availableEmployees =
+        useMemo(() => {
+            const assignedIds =
+                new Set(
+                    users.map(
+                        (user) => user.id,
+                    ),
+                );
 
-    const filteredUsers = useMemo(() => {
-        return localUsers.filter((user) => {
-            const matchesRole =
-                roleFilter === 'Semua Role' || user.role === roleFilter;
+            return employees.filter(
+                (employee) =>
+                    !assignedIds.has(
+                        employee.id,
+                    ),
+            );
+        }, [employees, users]);
 
-            const matchesStatus =
-                statusFilter === 'Semua Status' || user.status === statusFilter;
+    const filteredUsers =
+        useMemo(() => {
+            const term =
+                search
+                    .trim()
+                    .toLowerCase();
 
-            const term = search.trim().toLowerCase();
+            return users.filter(
+                (user) => {
+                    const matchesRole =
+                        !roleFilter ||
+                        user.roles.some(
+                            (role) =>
+                                role.id ===
+                                Number(
+                                    roleFilter,
+                                ),
+                        );
 
-            const matchesSearch =
-                !term ||
-                [user.name, user.email, user.role, user.location]
-                    .join(' ')
-                    .toLowerCase()
-                    .includes(term);
+                    const matchesStatus =
+                        !statusFilter ||
+                        user.status ===
+                        statusFilter;
 
-            return matchesRole && matchesStatus && matchesSearch;
-        });
-    }, [localUsers, roleFilter, statusFilter, search]);
+                    const roleText =
+                        user.roles
+                            .map(
+                                (role) =>
+                                    `${role.name} ${role.code}`,
+                            )
+                            .join(' ');
+
+                    const matchesSearch =
+                        !term ||
+                        [
+                            user.name,
+                            user.id_karyawan,
+                            user.location,
+                            roleText,
+                        ]
+                            .join(' ')
+                            .toLowerCase()
+                            .includes(
+                                term,
+                            );
+
+                    return (
+                        matchesRole &&
+                        matchesStatus &&
+                        matchesSearch
+                    );
+                },
+            );
+        }, [
+            users,
+            search,
+            roleFilter,
+            statusFilter,
+        ]);
 
     const openCreate = () => {
         setSelectedUser(null);
+
+        form.setData({
+            employee_id: '',
+            role_ids: [],
+        });
+
+        form.clearErrors();
+
         setModalType('create');
-        userForm.setData({
-            name: '',
-            role: '',
-            email: '',
-            password: '',
-        });
-        userForm.clearErrors();
     };
 
-    const openEdit = (user: UserRow) => {
+    const openEdit = (
+        user: UserRow,
+    ) => {
         setSelectedUser(user);
+
+        form.setData({
+            employee_id:
+                user.id,
+
+            role_ids:
+                user.roles.map(
+                    (role) =>
+                        role.id,
+                ),
+        });
+
+        form.clearErrors();
+
         setModalType('edit');
-        userForm.setData({
-            name: user.name,
-            role: user.role,
-            email: user.email,
-            password: '',
-        });
-        userForm.clearErrors();
-    };
-
-    const openResetPassword = (user: UserRow) => {
-        setSelectedUser(user);
-        setModalType('reset');
-        resetForm.setData({
-            password: '',
-            password_confirmation: '',
-        });
-        resetForm.clearErrors();
     };
 
     const closeModal = () => {
-        if (userForm.processing || resetForm.processing) return;
+        if (form.processing) {
+            return;
+        }
 
         setModalType(null);
         setSelectedUser(null);
-        userForm.reset();
-        resetForm.reset();
+
+        form.reset();
+        form.clearErrors();
     };
 
-    const submitUser = (event: FormEvent) => {
+    const toggleRole = (
+        roleId: number,
+    ) => {
+        const exists =
+            form.data.role_ids.includes(
+                roleId,
+            );
+
+        if (exists) {
+            form.setData(
+                'role_ids',
+                form.data.role_ids.filter(
+                    (id) =>
+                        id !==
+                        roleId,
+                ),
+            );
+
+            return;
+        }
+
+        form.setData(
+            'role_ids',
+            [
+                ...form.data
+                    .role_ids,
+                roleId,
+            ],
+        );
+    };
+
+    const submit = (event: FormEvent) => {
         event.preventDefault();
 
         if (modalType === 'create') {
-            if (storeUrl) {
-                userForm.post(storeUrl, {
-                    preserveScroll: true,
-                    onSuccess: closeModal,
-                });
-                return;
-            }
+            form.post('/roles', {
+                preserveScroll: true,
 
-            setLocalUsers((current) => [
-                ...current,
-                {
-                    id: Date.now(),
-                    name: userForm.data.name,
-                    email: userForm.data.email,
-                    role: (userForm.data.role || 'Operational') as UserRole,
-                    status: 'Aktif',
-                    location: 'Belum ditentukan',
-                    avatar: null,
+                onSuccess: () => {
+                    closeModal();
                 },
-            ]);
 
-            closeModal();
+                onError: (errors) => {
+                    console.log('Validation errors:', errors);
+                },
+            });
+
             return;
         }
 
         if (modalType === 'edit' && selectedUser) {
-            if (updateBaseUrl) {
-                router.put(
-                    `${updateBaseUrl}/${selectedUser.id}`,
-                    {
-                        name: userForm.data.name,
-                        role: userForm.data.role,
-                        email: userForm.data.email,
-                    },
-                    {
-                        preserveScroll: true,
-                        onSuccess: closeModal,
-                    },
-                );
-                return;
-            }
+            form.put(`/roles/${selectedUser.id}`, {
+                preserveScroll: true,
 
-            setLocalUsers((current) =>
-                current.map((user) =>
-                    user.id === selectedUser.id
-                        ? {
-                            ...user,
-                            name: userForm.data.name,
-                            email: userForm.data.email,
-                            role: userForm.data.role as UserRole,
-                        }
-                        : user,
-                ),
+                onSuccess: () => {
+                    closeModal();
+                },
+
+                onError: (errors) => {
+                    console.log('Validation errors:', errors);
+                },
+            });
+        }
+    };
+
+    const deleteRoles = (
+        user: UserRow,
+    ) => {
+        const confirmed =
+            window.confirm(
+                `Hapus semua role dari "${user.name}"?`,
             );
 
-            closeModal();
+        if (!confirmed) {
+            return;
         }
-    };
 
-    const submitResetPassword = (event: FormEvent) => {
-        event.preventDefault();
-
-        if (!selectedUser) return;
-
-        if (resetPasswordBaseUrl) {
-            resetForm.post(`${resetPasswordBaseUrl}/${selectedUser.id}`, {
+        router.delete(
+            `/roles/${user.id}`,
+            {
                 preserveScroll: true,
-                onSuccess: closeModal,
-            });
-            return;
-        }
 
-        alert(`Password ${selectedUser.name} berhasil diubah (dummy mode).`);
-        closeModal();
-    };
+                onSuccess: () => {
+                    console.log('Role berhasil dihapus');
+                },
 
-    const toggleStatus = (user: UserRow) => {
-        const nextStatus: UserStatus =
-            user.status === 'Aktif' ? 'Tidak Aktif' : 'Aktif';
-
-        const confirmed = window.confirm(
-            `${nextStatus === 'Aktif' ? 'Aktifkan' : 'Nonaktifkan'} pengguna "${user.name}"?`,
-        );
-
-        if (!confirmed) return;
-
-        if (toggleStatusBaseUrl) {
-            router.patch(
-                `${toggleStatusBaseUrl}/${user.id}`,
-                { status: nextStatus },
-                { preserveScroll: true },
-            );
-            return;
-        }
-
-        setLocalUsers((current) =>
-            current.map((item) =>
-                item.id === user.id ? { ...item, status: nextStatus } : item,
-            ),
-        );
-    };
-
-    const deleteUser = (user: UserRow) => {
-        const confirmed = window.confirm(
-            `Hapus pengguna "${user.name}"? Tindakan ini tidak dapat dibatalkan.`,
-        );
-
-        if (!confirmed) return;
-
-        if (deleteBaseUrl) {
-            router.delete(`${deleteBaseUrl}/${user.id}`, {
-                preserveScroll: true,
-            });
-            return;
-        }
-
-        setLocalUsers((current) =>
-            current.filter((item) => item.id !== user.id),
+                onError: (errors) => {
+                    console.error('Gagal menghapus role:', errors);
+                },
+            },
         );
     };
 
@@ -306,383 +308,526 @@ export default function RoleManagement({
 
             <div className="mx-auto w-full px-3 pb-8">
                 <section className="rounded-[22px] bg-white p-4 shadow-sm">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+
+                    {/* HEADER */}
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                            <Users size={22} className="text-gray-700" />
+                            <Users
+                                size={22}
+                                className="text-gray-700"
+                            />
+
                             <h1 className="text-[22px] font-extrabold text-[#111827]">
                                 Role and User Management
                             </h1>
                         </div>
+
                         <button
                             type="button"
-                            onClick={openCreate}
+                            onClick={
+                                openCreate
+                            }
                             className="flex h-11 items-center gap-2 rounded-xl bg-[#2faa32] px-4 font-semibold text-white transition hover:bg-[#249428]"
                         >
                             Tambah Pengguna
-                            <Plus size={18} />
+
+                            <Plus
+                                size={
+                                    18
+                                }
+                            />
                         </button>
                     </div>
 
+                    {/* FILTER */}
                     <div className="mb-3 flex flex-wrap justify-end gap-2">
+
                         <select
-                            value={roleFilter}
-                            onChange={(event) => setRoleFilter(event.target.value)}
-                            className="h-11 min-w-[170px] rounded-xl border border-[#8b8b8b] bg-white px-4 text-sm text-gray-700 outline-none"
+                            value={
+                                roleFilter
+                            }
+                            onChange={(
+                                event,
+                            ) =>
+                                setRoleFilter(
+                                    event
+                                        .target
+                                        .value,
+                                )
+                            }
+                            className="h-11 min-w-[180px] rounded-xl border border-gray-400 bg-white px-4 text-sm text-gray-700"
                         >
-                            <option>Semua Role</option>
-                            <option>Supervisor</option>
-                            <option>Operational</option>
-                            <option>Teknisi</option>
-                            <option>Admin Sistem</option>
+                            <option value="">
+                                Semua Role
+                            </option>
+
+                            {roles.map(
+                                (
+                                    role,
+                                ) => (
+                                    <option
+                                        key={
+                                            role.id
+                                        }
+                                        value={
+                                            role.id
+                                        }
+                                    >
+                                        {
+                                            role.name
+                                        }
+                                    </option>
+                                ),
+                            )}
                         </select>
 
                         <select
-                            value={statusFilter}
-                            onChange={(event) => setStatusFilter(event.target.value)}
-                            className="h-11 min-w-[170px] rounded-xl border border-[#8b8b8b] bg-white px-4 text-sm text-gray-700 outline-none"
+                            value={
+                                statusFilter
+                            }
+                            onChange={(
+                                event,
+                            ) =>
+                                setStatusFilter(
+                                    event
+                                        .target
+                                        .value,
+                                )
+                            }
+                            className="h-11 min-w-[170px] rounded-xl border border-gray-400 bg-white px-4 text-sm text-gray-700"
                         >
-                            <option>Semua Status</option>
-                            <option>Aktif</option>
-                            <option>Tidak Aktif</option>
+                            <option value="">
+                                Semua Status
+                            </option>
+
+                            <option value="Aktif">
+                                Aktif
+                            </option>
+
+                            <option value="Tidak Aktif">
+                                Tidak Aktif
+                            </option>
                         </select>
 
-                        <label className="flex h-11 min-w-[250px] items-center gap-2 rounded-xl border border-[#8b8b8b] bg-white px-3">
-                            <Search size={18} className="text-gray-500" />
+                        <label className="flex h-11 min-w-[250px] items-center gap-2 rounded-xl border border-gray-400 bg-white px-3">
+                            <Search
+                                size={
+                                    18
+                                }
+                                className="text-gray-500"
+                            />
+
                             <input
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Search.."
-                                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400 text-gray-700"
+                                value={
+                                    search
+                                }
+                                onChange={(
+                                    event,
+                                ) =>
+                                    setSearch(
+                                        event
+                                            .target
+                                            .value,
+                                    )
+                                }
+                                placeholder="Search..."
+                                className="w-full bg-transparent text-sm text-gray-700 outline-none"
                             />
                         </label>
                     </div>
 
+                    {/* TABLE */}
                     <div className="overflow-x-auto rounded-xl border border-gray-300">
-                        <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
+                        <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
                             <thead>
                                 <tr className="bg-black text-white">
-                                    <th className="w-[72px] px-3 py-3" />
-                                    <th className="px-3 py-3 font-bold">Nama</th>
-                                    <th className="px-3 py-3 font-bold">Email</th>
-                                    <th className="px-3 py-3 font-bold">Role</th>
-                                    <th className="px-3 py-3 font-bold">Status</th>
-                                    <th className="px-3 py-3 font-bold">Lokasi Kerja</th>
-                                    <th className="min-w-[210px] px-3 py-3 text-center font-bold">
+                                    <th className="w-[70px] px-3 py-3" />
+
+                                    <th className="px-3 py-3">
+                                        Nama
+                                    </th>
+
+                                    <th className="px-3 py-3">
+                                        ID Karyawan
+                                    </th>
+
+                                    <th className="px-3 py-3">
+                                        Role
+                                    </th>
+
+                                    <th className="px-3 py-3">
+                                        Status
+                                    </th>
+
+                                    <th className="px-3 py-3">
+                                        Lokasi Kerja
+                                    </th>
+
+                                    <th className="px-3 py-3 text-center">
                                         Aksi
                                     </th>
                                 </tr>
                             </thead>
 
                             <tbody>
-                                {filteredUsers.map((user) => (
-                                    <tr
-                                        key={user.id}
-                                        className="border-b border-gray-300 bg-white last:border-b-0 hover:bg-gray-50"
-                                    >
-                                        <td className="px-3 py-2">
-                                            <div className="h-11 w-11 overflow-hidden rounded-full bg-gray-200">
-                                                {user.avatar ? (
-                                                    <img
-                                                        src={user.avatar}
-                                                        alt={user.name}
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                                        <UserCog size={20} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-
-                                        <td className="px-3 py-2 font-bold text-gray-900">
-                                            {user.name}
-                                        </td>
-
-                                        <td className="px-3 py-2 text-gray-900">
-                                            {user.email}
-                                        </td>
-
-                                        <td className="px-3 py-2">
-                                            <span
-                                                className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getRoleStyle(user.role)}`}
-                                            >
-                                                {user.role}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-3 py-2">
-                                            <span
-                                                className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ${user.status === 'Aktif'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-gray-200 text-gray-600'
-                                                    }`}
-                                            >
-                                                ● {user.status}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-3 py-2 text-gray-900">
-                                            {user.location}
-                                        </td>
-
-                                        <td className="px-3 py-2">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleStatus(user)}
-                                                    className={`relative h-7 w-12 rounded-full transition ${user.status === 'Aktif'
-                                                            ? 'bg-[#2faa32]'
-                                                            : 'bg-gray-400'
-                                                        }`}
-                                                    title={
-                                                        user.status === 'Aktif'
-                                                            ? 'Nonaktifkan pengguna'
-                                                            : 'Aktifkan pengguna'
-                                                    }
-                                                >
-                                                    <span
-                                                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${user.status === 'Aktif'
-                                                                ? 'left-6'
-                                                                : 'left-1'
-                                                            }`}
-                                                    />
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(user)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4f86f7] text-white transition hover:bg-blue-600"
-                                                    title="Edit pengguna"
-                                                >
-                                                    <Pencil size={19} />
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openResetPassword(user)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#efa600] text-white transition hover:bg-amber-600"
-                                                    title="Reset password"
-                                                >
-                                                    <KeyRound size={19} />
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteUser(user)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#dc2f2f] text-white transition hover:bg-red-700"
-                                                    title="Hapus pengguna"
-                                                >
-                                                    <Trash2 size={19} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {filteredUsers.length === 0 && (
-                                    <tr>
-                                        <td
-                                            colSpan={7}
-                                            className="px-4 py-4 text-center text-gray-400"
+                                {filteredUsers.map(
+                                    (
+                                        user,
+                                    ) => (
+                                        <tr
+                                            key={
+                                                user.id
+                                            }
+                                            className="border-b border-gray-200 hover:bg-gray-50"
                                         >
-                                            Tidak ada pengguna yang sesuai dengan filter.
-                                        </td>
-                                    </tr>
+                                            <td className="px-3 py-2">
+                                                <div className="h-11 w-11 overflow-hidden rounded-full bg-gray-200">
+                                                    {user.avatar ? (
+                                                        <img
+                                                            src={
+                                                                user.avatar
+                                                            }
+                                                            alt={
+                                                                user.name
+                                                            }
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                                            <UserCog
+                                                                size={
+                                                                    20
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="px-3 py-2 font-bold text-gray-900">
+                                                {
+                                                    user.name
+                                                }
+                                            </td>
+
+                                            <td className="px-3 py-2 text-gray-700">
+                                                {
+                                                    user.id_karyawan
+                                                }
+                                            </td>
+
+                                            <td className="px-3 py-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {user.roles.map(
+                                                        (
+                                                            role,
+                                                        ) => (
+                                                            <span
+                                                                key={
+                                                                    role.id
+                                                                }
+                                                                className="rounded-full border border-green-400 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"
+                                                            >
+                                                                {
+                                                                    role.name
+                                                                }
+                                                            </span>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="px-3 py-2">
+                                                <span
+                                                    className={`rounded-md px-2.5 py-1 text-xs font-medium ${user.status ===
+                                                            'Aktif'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : 'bg-gray-200 text-gray-600'
+                                                        }`}
+                                                >
+                                                    ●{' '}
+                                                    {
+                                                        user.status
+                                                    }
+                                                </span>
+                                            </td>
+
+                                            <td className="px-3 py-2 text-gray-700">
+                                                {
+                                                    user.location
+                                                }
+                                            </td>
+
+                                            <td className="px-3 py-2">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openEdit(
+                                                                user,
+                                                            )
+                                                        }
+                                                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4f86f7] text-white transition hover:bg-blue-600"
+                                                        title="Edit role"
+                                                    >
+                                                        <Pencil
+                                                            size={
+                                                                18
+                                                            }
+                                                        />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            deleteRoles(
+                                                                user,
+                                                            )
+                                                        }
+                                                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#dc2f2f] text-white transition hover:bg-red-700"
+                                                        title="Hapus semua role"
+                                                    >
+                                                        <Trash2
+                                                            size={
+                                                                18
+                                                            }
+                                                        />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ),
                                 )}
+
+                                {filteredUsers.length ===
+                                    0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={
+                                                    7
+                                                }
+                                                className="px-4 py-8 text-center text-gray-400"
+                                            >
+                                                Tidak
+                                                ada
+                                                pengguna
+                                                yang
+                                                sesuai.
+                                            </td>
+                                        </tr>
+                                    )}
                             </tbody>
                         </table>
                     </div>
                 </section>
             </div>
 
+            {/* MODAL */}
             {modalType && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-                    onMouseDown={(event) => {
-                        if (event.currentTarget === event.target) {
-                            closeModal();
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
+                    <form
+                        onSubmit={
+                            submit
                         }
-                    }}
-                >
-                    {modalType === 'reset' ? (
-                        <ResetPasswordModal
-                            form={resetForm}
-                            closeModal={closeModal}
-                            submit={submitResetPassword}
+                        className="w-full max-w-[520px] overflow-hidden rounded-[18px] bg-white shadow-2xl"
+                    >
+                        <ModalHeader
+                            title={
+                                modalType ===
+                                    'create'
+                                    ? 'Tambah Pengguna'
+                                    : 'Edit Role Pengguna'
+                            }
+                            closeModal={
+                                closeModal
+                            }
                         />
-                    ) : (
-                        <UserFormModal
-                            mode={modalType}
-                            form={userForm}
-                            closeModal={closeModal}
-                            submit={submitUser}
-                        />
-                    )}
+
+                        <div className="space-y-4 p-5">
+
+                            {/* EMPLOYEE */}
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-800">
+                                    Pengguna
+                                </label>
+
+                                {modalType ===
+                                    'create' ? (
+                                    <select
+                                        value={
+                                            form
+                                                .data
+                                                .employee_id
+                                        }
+                                        onChange={(
+                                            event,
+                                        ) =>
+                                            form.setData(
+                                                'employee_id',
+                                                Number(
+                                                    event
+                                                        .target
+                                                        .value,
+                                                ) ||
+                                                '',
+                                            )
+                                        }
+                                        className="h-11 w-full rounded-lg border border-gray-400 bg-white px-3 text-sm text-gray-700"
+                                    >
+                                        <option value="">
+                                            --
+                                            Pilih
+                                            Pengguna
+                                            --
+                                        </option>
+
+                                        {availableEmployees.map(
+                                            (
+                                                employee,
+                                            ) => (
+                                                <option
+                                                    key={
+                                                        employee.id
+                                                    }
+                                                    value={
+                                                        employee.id
+                                                    }
+                                                >
+                                                    {
+                                                        employee.name
+                                                    }{' '}
+                                                    -{' '}
+                                                    {
+                                                        employee.email
+                                                    }
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                ) : (
+                                    <div className="rounded-lg border border-gray-300 bg-gray-50 px-3 py-3">
+                                        <div className="font-semibold text-gray-900">
+                                            {
+                                                selectedUser?.name
+                                            }
+                                        </div>
+
+                                        <div className="text-sm text-gray-500">
+                                            {
+                                                selectedUser?.email
+                                            }
+                                        </div>
+                                    </div>
+                                )}
+
+                                {form.errors
+                                    .employee_id && (
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {
+                                                form
+                                                    .errors
+                                                    .employee_id
+                                            }
+                                        </p>
+                                    )}
+                            </div>
+
+                            {/* ROLES */}
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-800">
+                                    Role
+                                </label>
+
+                                <div className="space-y-2 rounded-xl border border-gray-300 p-3">
+                                    {roles.map(
+                                        (
+                                            role,
+                                        ) => {
+                                            const checked =
+                                                form.data.role_ids.includes(
+                                                    role.id,
+                                                );
+
+                                            return (
+                                                <label
+                                                    key={
+                                                        role.id
+                                                    }
+                                                    className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-gray-50"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            checked
+                                                        }
+                                                        onChange={() =>
+                                                            toggleRole(
+                                                                role.id,
+                                                            )
+                                                        }
+                                                        className="h-4 w-4 accent-green-600"
+                                                    />
+
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-800">
+                                                            {
+                                                                role.name
+                                                            }
+                                                        </div>
+
+                                                        <div className="text-xs text-gray-500">
+                                                            {
+                                                                role.code
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        },
+                                    )}
+                                </div>
+
+                                {form.errors
+                                    .role_ids && (
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {
+                                                form
+                                                    .errors
+                                                    .role_ids
+                                            }
+                                        </p>
+                                    )}
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={
+                                        closeModal
+                                    }
+                                    className="rounded-xl border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                                >
+                                    Batal
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={
+                                        form.processing
+                                    }
+                                    className="min-w-[110px] rounded-xl bg-[#2faa32] px-5 py-3 font-semibold text-white transition hover:bg-[#249428] disabled:opacity-50"
+                                >
+                                    {form.processing
+                                        ? 'Menyimpan...'
+                                        : 'Simpan'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             )}
         </>
-    );
-}
-
-function UserFormModal({
-    mode,
-    form,
-    closeModal,
-    submit,
-}: {
-    mode: 'create' | 'edit';
-    form: ReturnType<
-        typeof useForm<{
-            name: string;
-            role: UserRole | '';
-            email: string;
-            password: string;
-        }>
-    >;
-    closeModal: () => void;
-    submit: (event: FormEvent) => void;
-}) {
-    const isCreate = mode === 'create';
-
-    return (
-        <form
-            onSubmit={submit}
-            className="w-full max-w-[520px] overflow-hidden rounded-[18px] bg-white shadow-2xl"
-        >
-            <ModalHeader
-                title={isCreate ? 'Tambah Pengguna' : 'Data Pengguna'}
-                closeModal={closeModal}
-            />
-
-            <div className="space-y-3 p-5">
-                <FieldLabel label="Nama Pengguna">
-                    <input
-                        type="text"
-                        value={form.data.name}
-                        onChange={(event) => form.setData('name', event.target.value)}
-                        placeholder="Nama Pengguna.."
-                        className="h-11 w-full rounded-lg border border-[#8b8b8b] px-3 text-sm outline-none focus:border-green-600 text-gray-700"
-                    />
-                </FieldLabel>
-
-                <FieldLabel label="Role">
-                    <select
-                        value={form.data.role}
-                        onChange={(event) =>
-                            form.setData(
-                                'role',
-                                event.target.value as UserRole | '',
-                            )
-                        }
-                        className="h-11 w-full rounded-lg border border-[#8b8b8b] bg-white px-3 text-sm outline-none focus:border-green-600 text-gray-700 placeholder:text-gray-400"
-                    >
-                        <option value="">-- Pilih Role --</option>
-                        <option value="Supervisor">Supervisor</option>
-                        <option value="Operational">Operational</option>
-                        <option value="Teknisi">Teknisi</option>
-                        <option value="Admin Sistem">Admin Sistem</option>
-                    </select>
-                </FieldLabel>
-
-                <FieldLabel label="Email">
-                    <input
-                        type="email"
-                        value={form.data.email}
-                        onChange={(event) => form.setData('email', event.target.value)}
-                        placeholder="Email Pengguna.."
-                        className="h-11 w-full rounded-lg border border-[#8b8b8b] px-3 text-sm outline-none focus:border-green-600 text-gray-700 placeholder:text-gray-400"
-                    />
-                </FieldLabel>
-
-                {isCreate && (
-                    <FieldLabel label="Password">
-                        <input
-                            type="password"
-                            value={form.data.password}
-                            onChange={(event) =>
-                                form.setData('password', event.target.value)
-                            }
-                            placeholder="Password Pengguna.."
-                            className="h-11 w-full rounded-lg border border-[#8b8b8b] px-3 text-sm outline-none focus:border-green-600 text-gray-700 placeholder:text-gray-400"
-                        />
-                    </FieldLabel>
-                )}
-
-                <div className="flex justify-end pt-2">
-                    <button
-                        type="submit"
-                        disabled={form.processing}
-                        className="min-w-[110px] rounded-xl bg-[#2faa32] px-5 py-3 font-semibold text-white transition hover:bg-[#249428] disabled:opacity-50"
-                    >
-                        {form.processing ? 'Menyimpan...' : 'Simpan'}
-                    </button>
-                </div>
-            </div>
-        </form>
-    );
-}
-
-function ResetPasswordModal({
-    form,
-    closeModal,
-    submit,
-}: {
-    form: ReturnType<
-        typeof useForm<{
-            password: string;
-            password_confirmation: string;
-        }>
-    >;
-    closeModal: () => void;
-    submit: (event: FormEvent) => void;
-}) {
-    return (
-        <form
-            onSubmit={submit}
-            className="w-full max-w-[520px] overflow-hidden rounded-[18px] bg-white shadow-2xl"
-        >
-            <ModalHeader title="Reset Password" closeModal={closeModal} />
-
-            <div className="space-y-3 p-5">
-                <FieldLabel label="Password Baru">
-                    <input
-                        type="password"
-                        value={form.data.password}
-                        onChange={(event) =>
-                            form.setData('password', event.target.value)
-                        }
-                        placeholder="Masukkan password baru.."
-                        className="h-11 w-full rounded-lg border border-[#8b8b8b] px-3 text-sm outline-none focus:border-green-600 text-gray-700 placeholder:text-gray-400"
-                    />
-                </FieldLabel>
-
-                <FieldLabel label="Ketik Ulang Password Baru">
-                    <input
-                        type="password"
-                        value={form.data.password_confirmation}
-                        onChange={(event) =>
-                            form.setData(
-                                'password_confirmation',
-                                event.target.value,
-                            )
-                        }
-                        placeholder="Ketik ulang password baru.."
-                        className="h-11 w-full rounded-lg border border-[#8b8b8b] px-3 text-sm outline-none focus:border-green-600 text-gray-700 placeholder:text-gray-400"
-                    />
-                </FieldLabel>
-
-                <div className="flex justify-end pt-2">
-                    <button
-                        type="submit"
-                        disabled={form.processing}
-                        className="min-w-[110px] rounded-xl bg-[#2faa32] px-5 py-3 font-semibold text-white transition hover:bg-[#249428] disabled:opacity-50"
-                    >
-                        {form.processing ? 'Menyimpan...' : 'Simpan'}
-                    </button>
-                </div>
-            </div>
-        </form>
     );
 }
 
@@ -697,34 +842,21 @@ function ModalHeader({
         <div className="flex h-[50px] items-center justify-between bg-black px-5 text-white">
             <div className="flex items-center gap-2">
                 <Wrench size={17} />
-                <span className="font-semibold">{title}</span>
+
+                <span className="font-semibold">
+                    {title}
+                </span>
             </div>
 
             <button
                 type="button"
-                onClick={closeModal}
+                onClick={
+                    closeModal
+                }
                 className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
-                aria-label="Tutup"
             >
                 <X size={17} />
             </button>
-        </div>
-    );
-}
-
-function FieldLabel({
-    label,
-    children,
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div>
-            <label className="mb-1 block text-sm font-medium text-gray-800">
-                {label}
-            </label>
-            {children}
         </div>
     );
 }

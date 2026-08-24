@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -59,46 +60,31 @@ class User extends Authenticatable
         return app()->environment('testing') ? 'users' : 'core.employees';
     }
 
-    public function roles(): HasMany
+    public function roles(): BelongsToMany
     {
-        return $this->hasMany(UserRoleModel::class, 'employee_id');
+        return $this->belongsToMany(
+            RoleModel::class,
+            'maintenance.user_role',
+            'employee_id',
+            'role_id'
+        );
     }
 
     public function hasRole(string $role): bool
     {
-        return $this->roles()
-            ->whereHas('role', function ($query) use ($role) {
-                $query
-                    ->where(function ($query) use ($role) {
-                        $query->where('code', $role)
-                            ->orWhere('name', $role);
-                    })
-                    ->where('is_active', true);
-            })
-            ->exists();
-    }
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('code', $role);
+        }
 
-    /**
-     * @param  array<int, string>  $roles
-     */
-    public function hasAnyRole(array $roles): bool
-    {
         return $this->roles()
-            ->whereHas('role', function ($query) use ($roles) {
-                $query
-                    ->where(function ($query) use ($roles) {
-                        $query->whereIn('code', $roles)
-                            ->orWhereIn('name', $roles);
-                    })
-                    ->where('is_active', true);
-            })
+            ->where('code', $role)
             ->exists();
     }
 
     protected function name(): Attribute
     {
         return Attribute::make(
-            get: fn () => trim("{$this->first_name} {$this->last_name}"),
+            get: fn() => trim("{$this->first_name} {$this->last_name}"),
         );
     }
 }

@@ -100,21 +100,30 @@ Route::middleware('auth')->group(function () {
             )->name('verification.reject');
         });
 
-    // Route::post('/roles', [RoleController::class, 'store'])
-    //     ->name('roles.store');
+    Route::prefix('roles')
+        ->name('roles.')
+        ->group(function () {
 
-    // Route::put('/roles/{id}', [RoleController::class, 'update'])
-    //     ->name('roles.update');
+            Route::get(
+                '/',
+                [RoleController::class, 'index']
+            )->name('index');
 
-    // Route::post('/roles/reset-password/{id}', [RoleController::class, 'resetPassword'])
-    //     ->name('roles.reset-password');
+            Route::post(
+                '/',
+                [RoleController::class, 'store']
+            )->name('store');
 
-    // Route::patch('/roles/status/{id}', [RoleController::class, 'toggleStatus'])
-    //     ->name('roles.status');
+            Route::put(
+                '/{employee}',
+                [RoleController::class, 'update']
+            )->name('update');
 
-    // Route::delete('/roles/{id}', [RoleController::class, 'destroy'])
-    //     ->name('roles.destroy');
-
+            Route::delete(
+                '/{employee}',
+                [RoleController::class, 'destroy']
+            )->name('destroy');
+        });
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';

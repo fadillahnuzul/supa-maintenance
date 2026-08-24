@@ -41,19 +41,21 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user()?->only([
                     'id',
-                    'name',
+                    'first_name',
+                    'last_name',
                     'email',
                     'email_verified_at',
                 ]),
+
                 'roles' => app()->environment('testing')
                     ? []
-                    : ($request->user()?->roles()
-                        ->whereHas('role', fn ($query) => $query->where('is_active', true))
-                        ->with('role:id,name,code')
-                        ->get()
-                        ->pluck('role.name')
+                    : ($request->user()
+                        ? $request->user()
+                        ->roles()
+                        ->pluck('name')
                         ->values()
-                        ->all() ?? []),
+                        ->all()
+                        : []),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

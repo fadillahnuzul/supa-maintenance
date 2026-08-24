@@ -23,7 +23,6 @@ const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Buat Tiket Perbaikan', href: '/tickets/create', icon: Pencil },
     { name: 'Daftar Pengerjaan', href: '/tickets', icon: Monitor },
-    // { name: 'Tambah Stok Sparepart', href: '/spareparts/stock-in', icon: PackagePlus },
     { name: 'Stok Sparepart', href: '/spareparts', icon: Archive },
     { name: 'Daftar Mesin', href: '/machines', icon: Wrench },
     { name: 'Role Management', href: '/roles', icon: Users },
@@ -37,13 +36,35 @@ export default function Sidebar({
 }: SidebarProps) {
     const { url } = usePage();
     const { auth } = usePage().props;
+    const visibleMenuItems = menuItems.filter((item) => {
+        if ((item.href === '/dashboard') || (item.href === '/spareparts')) {
+            return (
+                auth.roles.includes('System Admin') ||
+                auth.roles.includes('Maintenance Supervisor') ||
+                auth.roles.includes('Maintenance Admin') ||
+                auth.roles.includes('Teknisi') ||
+                auth.roles.includes('Maintenance Verifier')
+            );
+        }
 
-    const visibleMenuItems = menuItems.filter(
-        (item) =>
-            item.href !== '/roles' ||
-            auth.roles.includes('Admin Sistem') ||
-            auth.roles.includes('Supervisor'),
-    );
+        if (item.href === '/roles') {
+            return (
+                auth.roles.includes('System Admin') ||
+                auth.roles.includes('Maintenance Supervisor')
+            );
+        }
+
+        if ((item.href === '/othersettings') || (item.href === '/machines')) {
+            return (
+                auth.roles.includes('System Admin') ||
+                auth.roles.includes('Maintenance Supervisor') ||
+                auth.roles.includes('Maintenance Admin')
+            );
+        }
+
+        // Menu lainnya
+        return true;
+    });
 
     return (
         <aside
@@ -123,15 +144,13 @@ export default function Sidebar({
                             className={`
                                 flex h-[62px] items-center
                                 transition-all duration-200
-                                ${
-                                    collapsed
-                                        ? 'justify-center px-0'
-                                        : 'gap-4 px-6'
+                                ${collapsed
+                                    ? 'justify-center px-0'
+                                    : 'gap-4 px-6'
                                 }
-                                ${
-                                    active
-                                        ? 'bg-[#32a936] text-white'
-                                        : 'text-gray-200 hover:bg-white/10'
+                                ${active
+                                    ? 'bg-[#32a936] text-white'
+                                    : 'text-gray-200 hover:bg-white/10'
                                 }
                             `}
                         >
