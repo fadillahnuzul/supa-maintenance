@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CalendarDays,
@@ -27,385 +27,162 @@ type Ticket = {
     priority: TicketPriority;
     status: TicketStatus;
     created_at: string;
-    estimated_cost?: number;
 };
 
-const statusColors = {
+type Filters = {
+    start_date: string;
+    end_date: string;
+};
+
+type TicketComparison = {
+    total: number;
+    open: number;
+    in_progress: number;
+    closed: number;
+};
+
+type TicketStats = {
+    total: number;
+    open: number;
+    in_progress: number;
+    closed: number;
+    rejected: number;
+    comparison: TicketComparison;
+};
+
+type PriorityCounts = {
+    standard: number;
+    urgent: number;
+};
+
+type CategoryCounts = Record<
+    'machine' | 'electrical' | 'maintenance' | 'preventive_maintenance' | 'other',
+    number
+>;
+
+type MachineStats = {
+    total: number;
+    good: number;
+    maintenance: number;
+    broken: number;
+};
+
+type LowStockSparepart = {
+    id: number;
+    code: string;
+    name: string;
+    stock: number;
+    minimum: number;
+    unit: string;
+};
+
+type Summary = {
+    total_sparepart_stock: number;
+    total_sparepart_types: number;
+    stock_transactions_this_month: number;
+};
+
+type DashboardProps = {
+    auth: {
+        user?: {
+            name?: string;
+        };
+    };
+    filters: Filters;
+    ticketStats: TicketStats;
+    priorityCounts: PriorityCounts;
+    categoryCounts: CategoryCounts;
+    latestTickets: Ticket[];
+    machineStats: MachineStats;
+    lowStockSpareparts: LowStockSparepart[];
+    summary: Summary;
+};
+
+const statusColors: Record<TicketStatus, string> = {
     'Pending Approval': 'bg-[#fef3c7] text-[#b45309]',
     Rejected: 'bg-[#fee2e2] text-[#b91c1c]',
     Assigned: 'bg-[#e0f2fe] text-[#0369a1]',
     'In Progress': 'bg-[#fef3c7] text-[#a16207]',
     'Waiting Sparepart': 'bg-[#fef3c7] text-[#a16207]',
     Completed: 'bg-[#dcfce7] text-[#166534]',
-} as const;
-
-type Machine = {
-    id: number;
-    name: string;
-    status: 'Baik' | 'Maintenance' | 'Rusak/Tidak Aktif';
-    created_at: string;
 };
-
-type Sparepart = {
-    id: number;
-    name: string;
-    stock: number;
-    minimum: number;
-    unit: string;
-    created_at: string;
-};
-
-const dummyTickets: Ticket[] = [
-    {
-        id: 1,
-        code: 'TKT-260803-4054',
-        category: 'Mesin',
-        description: 'Mesin rusak',
-        technician: 'Budi',
-        priority: 'Darurat',
-        status: 'Assigned',
-        created_at: '2026-08-03',
-        estimated_cost: 1450000,
-    },
-    {
-        id: 2,
-        code: 'TKT-260803-4055',
-        category: 'Mesin',
-        description: 'Bearing panas',
-        technician: 'Budi',
-        priority: 'Standar',
-        status: 'Assigned',
-        created_at: '2026-08-03',
-        estimated_cost: 750000,
-    },
-    {
-        id: 3,
-        code: 'TKT-260804-4056',
-        category: 'Kelistrikan',
-        description: 'Panel tidak menyala',
-        technician: 'Rina',
-        priority: 'Darurat',
-        status: 'In Progress',
-        created_at: '2026-08-04',
-        estimated_cost: 1250000,
-    },
-    {
-        id: 4,
-        code: 'TKT-260804-4057',
-        category: 'Pemeliharaan',
-        description: 'Pengecekan rutin mesin',
-        technician: 'Budi',
-        priority: 'Standar',
-        status: 'Completed',
-        created_at: '2026-08-04',
-        estimated_cost: 350000,
-    },
-    {
-        id: 5,
-        code: 'TKT-260805-4058',
-        category: 'Preventif',
-        description: 'Preventive maintenance',
-        technician: 'Rina',
-        priority: 'Darurat',
-        status: 'In Progress',
-        created_at: '2026-08-05',
-        estimated_cost: 980000,
-    },
-    {
-        id: 6,
-        code: 'TKT-260805-4059',
-        category: 'Lainnya',
-        description: 'Perbaikan pintu',
-        technician: 'Budi',
-        priority: 'Standar',
-        status: 'Pending Approval',
-        created_at: '2026-08-05',
-        estimated_cost: 250000,
-    },
-    {
-        id: 7,
-        code: 'TKT-260806-4060',
-        category: 'Mesin',
-        description: 'Conveyor macet',
-        technician: 'Rina',
-        priority: 'Darurat',
-        status: 'Waiting Sparepart',
-        created_at: '2026-08-06',
-        estimated_cost: 1150000,
-    },
-    {
-        id: 8,
-        code: 'TKT-260806-4061',
-        category: 'Kelistrikan',
-        description: 'Lampu area mati',
-        technician: 'Budi',
-        priority: 'Standar',
-        status: 'Completed',
-        created_at: '2026-08-06',
-        estimated_cost: 175000,
-    },
-    {
-        id: 9,
-        code: 'TKT-260807-4062',
-        category: 'Mesin',
-        description: 'Motor berisik',
-        technician: 'Budi',
-        priority: 'Darurat',
-        status: 'Assigned',
-        created_at: '2026-08-07',
-        estimated_cost: 1400000,
-    },
-    {
-        id: 10,
-        code: 'TKT-260807-4063',
-        category: 'Preventif',
-        description: 'Cek belt conveyor',
-        technician: 'Rina',
-        priority: 'Standar',
-        status: 'Completed',
-        created_at: '2026-08-07',
-        estimated_cost: 550000,
-    },
-    {
-        id: 11,
-        code: 'TKT-260808-4064',
-        category: 'Mesin',
-        description: 'Screw feeder macet',
-        technician: 'Budi',
-        priority: 'Darurat',
-        status: 'In Progress',
-        created_at: '2026-08-08',
-        estimated_cost: 850000,
-    },
-    {
-        id: 12,
-        code: 'TKT-260808-4065',
-        category: 'Lainnya',
-        description: 'Perbaikan rak',
-        technician: 'Rina',
-        priority: 'Standar',
-        status: 'Completed',
-        created_at: '2026-08-08',
-        estimated_cost: 340000,
-    },
-];
-
-const dummyMachines: Machine[] = [
-    ...Array.from({ length: 20 }).map((_, index) => ({
-        id: index + 1,
-        name: `Mesin ${index + 1}`,
-        status: 'Baik' as const,
-        created_at: '2026-08-03',
-    })),
-    {
-        id: 21,
-        name: 'Mesin 21',
-        status: 'Maintenance',
-        created_at: '2026-08-04',
-    },
-    {
-        id: 22,
-        name: 'Mesin 22',
-        status: 'Maintenance',
-        created_at: '2026-08-06',
-    },
-    {
-        id: 23,
-        name: 'Mesin 23',
-        status: 'Rusak/Tidak Aktif',
-        created_at: '2026-08-07',
-    },
-];
-
-const dummySpareparts: Sparepart[] = [
-    {
-        id: 1,
-        name: 'Bearing 6205',
-        stock: 2,
-        minimum: 3,
-        unit: 'pcs',
-        created_at: '2026-08-03',
-    },
-    {
-        id: 2,
-        name: 'Belt Conveyor',
-        stock: 2,
-        minimum: 5,
-        unit: 'pcs',
-        created_at: '2026-08-04',
-    },
-    {
-        id: 3,
-        name: 'Heater Element',
-        stock: 1,
-        minimum: 3,
-        unit: 'pcs',
-        created_at: '2026-08-04',
-    },
-    {
-        id: 4,
-        name: 'Thermocouple Type K',
-        stock: 2,
-        minimum: 3,
-        unit: 'pcs',
-        created_at: '2026-08-05',
-    },
-    {
-        id: 5,
-        name: 'V-Belt A-32',
-        stock: 2,
-        minimum: 3,
-        unit: 'pcs',
-        created_at: '2026-08-06',
-    },
-    {
-        id: 6,
-        name: 'Bearing 6205',
-        stock: 2,
-        minimum: 3,
-        unit: 'pcs',
-        created_at: '2026-08-07',
-    },
-    {
-        id: 7,
-        name: 'Belt Conveyor',
-        stock: 2,
-        minimum: 5,
-        unit: 'pcs',
-        created_at: '2026-08-08',
-    },
-];
 
 const categoryColors: Record<string, string> = {
-    Mesin: '#2f73ff',
-    Kelistrikan: '#2ea768',
-    Pemeliharaan: '#f58a17',
-    Preventif: '#7c3db9',
-    Lainnya: '#9ca3af',
+    machine: '#2f73ff',
+    electrical: '#2ea768',
+    maintenance: '#f58a17',
+    preventive_maintenance: '#7c3db9',
+    other: '#9ca3af',
 };
 
-function withinRange(date: string, startDate: string, endDate: string) {
-    return date >= startDate && date <= endDate;
-}
+const categoryLabels: Record<string, string> = {
+    machine: 'Machine',
+    electrical: 'Electrical',
+    maintenance: 'Maintenance',
+    preventive_maintenance: 'Preventive Maintenance',
+    other: 'Lainnya',
+};
 
-function formatCurrency(value: number) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-    }).format(value);
+function comparisonText(value: number) {
+    if (value === 0) return 'Sama dengan periode sebelumnya';
+
+    return `${value > 0 ? '+' : ''}${value} dari periode sebelumnya`;
 }
 
 export default function Dashboard() {
-    const [startDate, setStartDate] = useState('2026-08-03');
-    const [endDate, setEndDate] = useState('2026-08-08');
-    const { auth } = usePage().props;
+    const {
+        auth,
+        filters,
+        ticketStats,
+        priorityCounts,
+        categoryCounts,
+        latestTickets,
+        machineStats,
+        lowStockSpareparts,
+        summary,
+    } = usePage<DashboardProps>().props;
 
-    const filteredTickets = useMemo(
-        () =>
-            dummyTickets.filter((ticket) =>
-                withinRange(ticket.created_at, startDate, endDate),
-            ),
-        [startDate, endDate],
-    );
+    const [startDate, setStartDate] = useState(filters.start_date);
+    const [endDate, setEndDate] = useState(filters.end_date);
 
-    const filteredMachines = useMemo(
-        () =>
-            dummyMachines.filter((machine) =>
-                withinRange(machine.created_at, startDate, endDate),
-            ),
-        [startDate, endDate],
-    );
+    const applyDateFilter = (start: string, end: string) => {
+        if (!start || !end || end < start) return;
 
-    const filteredSpareparts = useMemo(
-        () =>
-            dummySpareparts.filter((sparepart) =>
-                withinRange(sparepart.created_at, startDate, endDate),
-            ),
-        [startDate, endDate],
-    );
+        router.get(
+            '/dashboard',
+            {
+                start_date: start,
+                end_date: end,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
 
-    const totalTickets = filteredTickets.length;
+    const handleStartDateChange = (value: string) => {
+        setStartDate(value);
 
-    const openTickets = filteredTickets.filter(
-        (ticket) =>
-            ticket.status !== 'Completed' &&
-            ticket.status !== 'Rejected',
-    ).length;
+        if (endDate && value <= endDate) {
+            applyDateFilter(value, endDate);
+        }
+    };
 
-    const inProgressTickets = filteredTickets.filter(
-        (ticket) =>
-            ticket.status === 'In Progress' ||
-            ticket.status === 'Assigned' ||
-            ticket.status === 'Waiting Sparepart',
-    ).length;
+    const handleEndDateChange = (value: string) => {
+        setEndDate(value);
 
-    const closedTickets = filteredTickets.filter(
-        (ticket) => ticket.status === 'Completed',
-    ).length;
-
-    const priorityCounts = useMemo(() => {
-        const standard = filteredTickets.filter(
-            (ticket) => ticket.priority === 'Standar',
-        ).length;
-        const urgent = filteredTickets.filter(
-            (ticket) => ticket.priority === 'Darurat',
-        ).length;
-
-        return { standard, urgent };
-    }, [filteredTickets]);
-
-    const categoryCounts = useMemo(() => {
-        const result: Record<string, number> = {
-            Mesin: 0,
-            Kelistrikan: 0,
-            Pemeliharaan: 0,
-            Preventif: 0,
-            Lainnya: 0,
-        };
-
-        filteredTickets.forEach((ticket) => {
-            if (result[ticket.category] !== undefined) {
-                result[ticket.category] += 1;
-            } else {
-                result.Lainnya += 1;
-            }
-        });
-
-        return result;
-    }, [filteredTickets]);
-
-    const machineCounts = useMemo(() => {
-        return {
-            good: filteredMachines.filter((item) => item.status === 'Baik').length,
-            maintenance: filteredMachines.filter(
-                (item) => item.status === 'Maintenance',
-            ).length,
-            broken: filteredMachines.filter(
-                (item) => item.status === 'Rusak/Tidak Aktif',
-            ).length,
-        };
-    }, [filteredMachines]);
-
-    const latestTickets = [...filteredTickets]
-        .sort((a, b) => b.created_at.localeCompare(a.created_at))
-        .slice(0, 7);
-
-    const lowStockSpareparts = filteredSpareparts.filter(
-        (item) => item.stock <= item.minimum,
-    );
-
-    const totalEstimatedCost = filteredTickets.reduce(
-        (sum, ticket) => sum + (ticket.estimated_cost ?? 0),
-        0,
-    );
+        if (startDate && value >= startDate) {
+            applyDateFilter(startDate, value);
+        }
+    };
 
     return (
         <>
             <Head title="Dashboard" />
 
             <div className="mx-auto w-full px-3 pb-8">
-                {/* HEADER + DATE FILTER */}
                 <section className="mb-3">
                     <div className="flex flex-wrap items-end justify-between gap-4">
                         <div>
@@ -413,7 +190,7 @@ export default function Dashboard() {
                                 Good Morning,
                             </p>
                             <h1 className="text-[24px] font-extrabold leading-tight text-[#111827]">
-                                {auth.user?.name}
+                                {auth.user?.name ?? '-'}
                             </h1>
                             <p className="text-sm text-gray-600">
                                 Today is a new chance to create something amazing.
@@ -423,14 +200,14 @@ export default function Dashboard() {
                         <div className="flex flex-wrap items-center gap-2">
                             <DateInput
                                 value={startDate}
-                                onChange={setStartDate}
+                                onChange={handleStartDateChange}
                             />
 
                             <span className="text-sm text-gray-500">s/d</span>
 
                             <DateInput
                                 value={endDate}
-                                onChange={setEndDate}
+                                onChange={handleEndDateChange}
                             />
 
                             <Link
@@ -444,44 +221,41 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* STAT CARDS */}
                 <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         title="Total Tiket"
-                        value={totalTickets}
-                        note="+2 Dari minggu lalu"
+                        value={ticketStats.total}
+                        note={comparisonText(ticketStats.comparison.total)}
                         icon={<ClipboardList size={44} />}
                         accent="text-[#2faa32]"
                     />
 
                     <StatCard
                         title="Tiket Open"
-                        value={openTickets}
-                        note="+2 Dari minggu lalu"
+                        value={ticketStats.open}
+                        note={comparisonText(ticketStats.comparison.open)}
                         icon={<AlertTriangle size={44} />}
                         accent="text-[#e4443d]"
                     />
 
                     <StatCard
                         title="Tiket In Progress"
-                        value={inProgressTickets}
-                        note="+2 Dari minggu lalu"
+                        value={ticketStats.in_progress}
+                        note={comparisonText(ticketStats.comparison.in_progress)}
                         icon={<Sparkles size={44} />}
                         accent="text-[#f2a000]"
                     />
 
                     <StatCard
                         title="Tiket Closed"
-                        value={closedTickets}
-                        note="+2 Dari minggu lalu"
+                        value={ticketStats.closed}
+                        note={comparisonText(ticketStats.comparison.closed)}
                         icon={<CheckCircle2 size={44} />}
                         accent="text-[#4f86f7]"
                     />
                 </section>
 
-                {/* MAIN CONTENT */}
-                <section className="mt-3 grid gap-3 xl:grid-cols-[1fr_380px]">
-                    {/* LATEST TICKETS */}
+                <section className="mt-3 grid gap-3 xl:grid-cols-[1fr_390px]">
                     <div className="overflow-hidden rounded-2xl border border-gray-300 bg-white">
                         <div className="flex items-center justify-between border-b border-gray-300 px-4 py-3">
                             <h2 className="text-lg font-extrabold text-[#111827]">
@@ -497,7 +271,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="min-w-[780px] w-full border-collapse text-left text-sm">
+                            <table className="w-full min-w-[780px] border-collapse text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-gray-300 bg-[#f8f8f8] text-gray-900">
                                         <th className="px-3 py-2 font-bold">No Tiket</th>
@@ -521,7 +295,7 @@ export default function Dashboard() {
                                             <td className="px-3 py-2 font-medium text-gray-900">
                                                 {ticket.category}
                                             </td>
-                                            <td className="px-3 py-2 max-w-[300px] truncate text-gray-900">
+                                            <td className="max-w-[300px] truncate px-3 py-2 text-gray-900">
                                                 {ticket.description}
                                             </td>
                                             <td className="px-3 py-2 font-medium text-gray-900">
@@ -537,7 +311,12 @@ export default function Dashboard() {
                                                 {ticket.priority}
                                             </td>
                                             <td className="px-3 py-2">
-                                                <span className={`rounded px-2 py-1 text-xs ${statusColors[ticket.status]}`}>
+                                                <span
+                                                    className={`rounded px-2 py-1 text-xs ${
+                                                        statusColors[ticket.status] ??
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}
+                                                >
                                                     {ticket.status}
                                                 </span>
                                             </td>
@@ -559,7 +338,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* DONUTS */}
                     <div className="rounded-2xl border border-gray-300 bg-white p-4">
                         <h2 className="text-lg font-extrabold text-[#111827]">
                             Tiket Per Prioritas
@@ -567,7 +345,7 @@ export default function Dashboard() {
 
                         <div className="mt-2 grid grid-cols-[110px_1fr] items-center gap-3">
                             <DonutChart
-                                total={totalTickets}
+                                total={ticketStats.total}
                                 segments={[
                                     {
                                         value: priorityCounts.standard,
@@ -585,13 +363,13 @@ export default function Dashboard() {
                                     color="#f2ad00"
                                     label="Standar"
                                     value={priorityCounts.standard}
-                                    total={totalTickets}
+                                    total={ticketStats.total}
                                 />
                                 <LegendRow
                                     color="#e5332f"
                                     label="Urgent"
                                     value={priorityCounts.urgent}
-                                    total={totalTickets}
+                                    total={ticketStats.total}
                                 />
                             </div>
                         </div>
@@ -602,11 +380,11 @@ export default function Dashboard() {
 
                         <div className="mt-2 grid grid-cols-[110px_1fr] items-center gap-3">
                             <DonutChart
-                                total={totalTickets}
+                                total={ticketStats.total}
                                 segments={Object.entries(categoryCounts).map(
                                     ([label, value]) => ({
                                         value,
-                                        color: categoryColors[label],
+                                        color: categoryColors[label] ?? '#9ca3af',
                                     }),
                                 )}
                             />
@@ -616,10 +394,10 @@ export default function Dashboard() {
                                     ([label, value]) => (
                                         <LegendRow
                                             key={label}
-                                            color={categoryColors[label]}
-                                            label={label}
+                                            color={categoryColors[label] ?? '#9ca3af'}
+                                            label={categoryLabels[label]}
                                             value={value}
-                                            total={totalTickets}
+                                            total={ticketStats.total}
                                         />
                                     ),
                                 )}
@@ -628,9 +406,7 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* BOTTOM */}
                 <section className="mt-3 grid gap-3 xl:grid-cols-[350px_1fr_350px]">
-                    {/* MACHINE CONDITION */}
                     <div className="rounded-2xl border border-gray-300 bg-white p-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-extrabold text-[#111827]">
@@ -647,20 +423,20 @@ export default function Dashboard() {
 
                         <div className="mt-4 flex justify-center">
                             <DonutChart
-                                total={filteredMachines.length}
+                                total={machineStats.total}
                                 size={205}
                                 thickness={42}
                                 segments={[
                                     {
-                                        value: machineCounts.good,
+                                        value: machineStats.good,
                                         color: '#2f8f18',
                                     },
                                     {
-                                        value: machineCounts.maintenance,
+                                        value: machineStats.maintenance,
                                         color: '#f2a000',
                                     },
                                     {
-                                        value: machineCounts.broken,
+                                        value: machineStats.broken,
                                         color: '#e5372d',
                                     },
                                 ]}
@@ -672,25 +448,24 @@ export default function Dashboard() {
                             <LegendRow
                                 color="#2f8f18"
                                 label="Baik"
-                                value={machineCounts.good}
-                                total={filteredMachines.length}
+                                value={machineStats.good}
+                                total={machineStats.total}
                             />
                             <LegendRow
                                 color="#f2a000"
                                 label="Maintenance"
-                                value={machineCounts.maintenance}
-                                total={filteredMachines.length}
+                                value={machineStats.maintenance}
+                                total={machineStats.total}
                             />
                             <LegendRow
                                 color="#e5372d"
                                 label="Rusak/Tidak Aktif"
-                                value={machineCounts.broken}
-                                total={filteredMachines.length}
+                                value={machineStats.broken}
+                                total={machineStats.total}
                             />
                         </div>
                     </div>
 
-                    {/* LOW STOCK */}
                     <div className="overflow-hidden rounded-2xl border border-gray-300 bg-white">
                         <div className="flex items-center justify-between border-b border-gray-300 px-4 py-3">
                             <h2 className="text-lg font-extrabold text-[#111827]">
@@ -721,7 +496,10 @@ export default function Dashboard() {
                                             className="border-b border-gray-200"
                                         >
                                             <td className="px-3 py-2 font-medium text-gray-900">
-                                                {item.name}
+                                                <div>{item.name}</div>
+                                                <div className="text-xs text-gray-400">
+                                                    {item.code}
+                                                </div>
                                             </td>
                                             <td className="px-3 py-2 font-medium text-red-500">
                                                 {item.stock} {item.unit}
@@ -731,6 +509,17 @@ export default function Dashboard() {
                                             </td>
                                         </tr>
                                     ))}
+
+                                    {lowStockSpareparts.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={3}
+                                                className="px-4 py-10 text-center text-gray-400"
+                                            >
+                                                Tidak ada sparepart dengan stok rendah.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -745,7 +534,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* SUMMARY */}
                     <div className="rounded-2xl border border-gray-300 bg-white p-4">
                         <h2 className="text-lg font-extrabold text-[#111827]">
                             Ringkasan
@@ -754,46 +542,38 @@ export default function Dashboard() {
                         <div className="mt-3 space-y-1 text-sm">
                             <SummaryRow
                                 label="Total Mesin"
-                                value={filteredMachines.length}
+                                value={machineStats.total}
                             />
                             <SummaryRow
                                 label="Mesin Aktif"
-                                value={machineCounts.good}
+                                value={machineStats.good}
                                 valueClassName="text-green-600"
                             />
                             <SummaryRow
                                 label="Mesin Maintenance"
-                                value={machineCounts.maintenance}
+                                value={machineStats.maintenance}
                                 valueClassName="text-amber-500"
                             />
                             <SummaryRow
                                 label="Mesin Rusak / Tidak Aktif"
-                                value={machineCounts.broken}
+                                value={machineStats.broken}
                                 valueClassName="text-red-500"
                             />
 
                             <div className="my-2 border-t border-gray-400" />
 
                             <SummaryRow
-                                label="Total Sparepart"
-                                value={1248}
+                                label="Total Stok Sparepart"
+                                value={summary.total_sparepart_stock.toLocaleString('id-ID')}
                             />
                             <SummaryRow
                                 label="Total Jenis Sparepart"
-                                value={126}
+                                value={summary.total_sparepart_types.toLocaleString('id-ID')}
                             />
                             <SummaryRow
                                 label="Total Transaksi Bulan Ini"
-                                value={23}
+                                value={summary.stock_transactions_this_month.toLocaleString('id-ID')}
                             />
-
-                            <div className="my-2 border-t border-gray-400" />
-
-                            {/* <SummaryRow
-                                label="Estimasi Biaya"
-                                value={formatCurrency(totalEstimatedCost)}
-                                valueClassName="text-green-600"
-                            /> */}
                         </div>
                     </div>
                 </section>
@@ -815,6 +595,11 @@ function DateInput({
             <input
                 type="date"
                 value={value}
+                onClick={(event) => {
+                    if (typeof event.currentTarget.showPicker === 'function') {
+                        event.currentTarget.showPicker();
+                    }
+                }}
                 onChange={(event) => onChange(event.target.value)}
                 className="bg-transparent text-sm text-gray-700 outline-none"
             />
