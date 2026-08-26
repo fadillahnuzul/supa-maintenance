@@ -8,20 +8,29 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SparepartController;
 use App\Http\Controllers\SparepartStockController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])
-        ->name('home');
-
-    Route::get('/spareparts', function () {
-        return Inertia::render('spareparts/index');
-    });
-
     // Dashboard route
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])
+        ->name('home');
+
+
+    //Notification route
+    Route::post(
+        '/notifications/{notification}/read',
+        [NotificationController::class, 'read']
+    )->name('notifications.read');
+
+    Route::post(
+        '/notifications/read-all',
+        [NotificationController::class, 'readAll']
+    )->name('notifications.read-all');
+
 
     // Sparepart routes
     Route::resource('/spareparts', SparepartController::class);

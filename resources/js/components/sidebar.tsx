@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
     LayoutDashboard,
     Pencil,
@@ -11,12 +11,14 @@ import {
     UserCog,
     ChevronLeft,
     ChevronRight,
+    LogOut
 } from 'lucide-react';
 import { useState } from 'react';
 
 type SidebarProps = {
     collapsed: boolean;
     setCollapsed: (value: boolean) => void;
+    logoutUrl?: string;
 };
 
 const menuItems = [
@@ -33,6 +35,7 @@ const menuItems = [
 export default function Sidebar({
     collapsed,
     setCollapsed,
+    logoutUrl = '/logout',
 }: SidebarProps) {
     const { url } = usePage();
     const { auth } = usePage().props;
@@ -65,6 +68,10 @@ export default function Sidebar({
         // Menu lainnya
         return true;
     });
+
+    const logout = () => {
+        router.post(logoutUrl);
+    };
 
     return (
         <aside
@@ -170,29 +177,41 @@ export default function Sidebar({
             </nav>
 
             {/* User */}
-            <div
-                className={`
+            <div className="">
+                <div className="px-5 mb-5">
+                    <button
+                        type="button"
+                        onClick={logout}
+                        className="flex h-11 items-center w-full justify-center gap-2 rounded-xl bg-[#e54d42] px-5 font-semibold text-white transition hover:bg-red-600"
+                    >
+                        <LogOut size={18} />
+                        Logout
+                    </button>
+                </div>
+                <div
+                    className={`
                     flex items-center pb-6
                     ${collapsed ? 'justify-center' : 'gap-3 px-5'}
                 `}
-            >
-                <img
-                    src={auth.user?.avatar || '/images/default-avatar.jpg'}
-                    alt="User"
-                    className="h-11 w-11 rounded-full object-cover"
-                />
+                >
+                    <img
+                        src={auth.user?.avatar || '/images/default-avatar.jpg'}
+                        alt="User"
+                        className="h-11 w-11 rounded-full object-cover"
+                    />
 
-                {!collapsed && (
-                    <div>
-                        <div className="font-semibold">
-                            {auth.user?.name}
-                        </div>
+                    {!collapsed && (
+                        <div>
+                            <div className="font-semibold">
+                                {auth.user?.name}
+                            </div>
 
-                        <div className="mt-1 inline-block rounded-full bg-[#32a936] px-3 py-0.5 text-xs">
-                            {auth.roles[0] ?? 'Pengguna'}
+                            <div className="mt-1 inline-block rounded-full bg-[#32a936] px-3 py-0.5 text-xs">
+                                {auth.roles[0] ?? 'Pengguna'}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </aside>
     );

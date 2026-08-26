@@ -2,6 +2,7 @@
 
 namespace App\Models\Ticket;
 
+use App\Models\BuildingModel;
 use App\Models\DivisionModel;
 use App\Models\Machine\MachineModel;
 use App\Models\User;
@@ -66,6 +67,14 @@ class TicketModel extends Model
     {
         return $this->belongsTo(
             DivisionModel::class,
+            'division_id'
+        );
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(
+            BuildingModel::class,
             'division_id'
         );
     }

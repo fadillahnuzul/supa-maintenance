@@ -38,7 +38,9 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
             'name' => config('app.name'),
+
             'auth' => [
                 'user' => $request->user()
                     ? [
@@ -49,7 +51,9 @@ class HandleInertiaRequests extends Middleware
                             'email',
                             'email_verified_at',
                         ]),
+
                         'name' => $request->user()->name,
+
                         'avatar' => $request->user()->profile_photo_path
                             ? Storage::disk('public')->url(
                                 $request->user()->profile_photo_path
@@ -60,15 +64,50 @@ class HandleInertiaRequests extends Middleware
 
                 'roles' => app()->environment('testing')
                     ? []
-                    : ($request->user()
+                    : (
+                        $request->user()
                         ? $request->user()
                         ->roles()
                         ->pluck('name')
                         ->values()
                         ->all()
-                        : []),
+                        : []
+                    ),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'notifications' => fn() => $request->user()
+                ? [
+                    'unread_count' => $request->user()
+                        ->unreadNotifications()
+                        ->count(),
+
+                    'items' => $request->user()
+                        ->notifications()
+                        ->latest()
+                        ->limit(10)
+                        ->get()
+                        ->map(function ($notification) {
+                            return [
+                                'id' => $notification->id,
+                                'title' => $notification->data['title'] ?? 'Notifikasi',
+                                'message' => $notification->data['message'] ?? '',
+                                'type' => $notification->data['type'] ?? null,
+                                'ticket_id' => $notification->data['ticket_id'] ?? null,
+                                'ticket_code' => $notification->data['ticket_code'] ?? null,
+                                'url' => $notification->data['url'] ?? null,
+                                'read_at' => $notification->read_at?->toISOString(),
+                                'created_at' => $notification->created_at?->toISOString(),
+                            ];
+                        })
+                        ->values()
+                        ->all(),
+                ]
+                : [
+                    'unread_count' => 0,
+                    'items' => [],
+                ],
+            'sidebarOpen' =>
+            ! $request->hasCookie('sidebar_state')
+                || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

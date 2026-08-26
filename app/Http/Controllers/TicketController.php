@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Events\Notification\TicketCreated;
+use App\Events\Notification\TicketAssigned;
+use App\Events\Notification\TicketCompleted;
+use App\Events\Notification\TicketVerified;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,7 +40,7 @@ class TicketController extends Controller
         $tickets = TicketModel::query()
             ->with([
                 'reporter:id,first_name,last_name',
-                'division:id,name',
+                'location:id,name',
                 'machine:id,name,code',
                 'status:id,code,name',
                 'technicians.employee:id,first_name,last_name',
@@ -112,8 +116,8 @@ class TicketController extends Controller
                             )
 
                             ->orWhereHas(
-                                'division',
-                                fn($division) => $division->where(
+                                'location',
+                                fn($location) => $location->where(
                                     'name',
                                     'ilike',
                                     "%{$search}%"
@@ -201,7 +205,7 @@ class TicketController extends Controller
 
     public function create(): Response
     {
-        $divisions = BuildingModel::query()
+        $location = BuildingModel::query()
             ->select([
                 'id',
                 'name',
@@ -228,7 +232,7 @@ class TicketController extends Controller
 
                 'reporter' => $this->currentEmployeeResource(),
 
-                'divisions' => $divisions,
+                'divisions' => $location,
 
                 'machines' => $machines,
             ]
@@ -352,6 +356,10 @@ class TicketController extends Controller
                     description: 'Tiket perbaikan diajukan.',
                     employeeId: $employeeId,
                 );
+
+                DB::afterCommit(function () use ($ticket) {
+                    event(new TicketCreated($ticket));
+                });
             }
         );
 
@@ -384,7 +392,7 @@ class TicketController extends Controller
 
         $ticket->load([
             'reporter:id,first_name,last_name',
-            'division:id,name',
+            'location:id,name',
             'machine:id,name,code',
 
             'status:id,code,name',
@@ -451,6 +459,15 @@ class TicketController extends Controller
             ],
         ]);
 
+        $technicianIds = collect([
+            $validated['pic_technician_id'],
+            ...($validated['additional_technician_ids'] ?? []),
+        ])
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
         $approverId =
             $this->currentEmployeeId();
 
@@ -458,7 +475,8 @@ class TicketController extends Controller
             function () use (
                 $ticket,
                 $validated,
-                $approverId
+                $approverId,
+                $technicianIds
             ) {
 
                 /*
@@ -549,6 +567,20 @@ class TicketController extends Controller
                     toStatus: 'assigned',
                     description: 'Tiket disetujui dan teknisi ditugaskan.',
                     employeeId: $approverId,
+                );
+
+                DB::afterCommit(
+                    function () use (
+                        $ticket,
+                        $technicianIds
+                    ) {
+                        event(
+                            new TicketAssigned(
+                                $ticket,
+                                $technicianIds
+                            )
+                        );
+                    }
                 );
             }
         );
@@ -650,7 +682,7 @@ class TicketController extends Controller
         $ticket->load([
             'reporter:id,first_name,last_name',
 
-            'division:id,name',
+            'location:id,name',
 
             'machine:id,name,code',
 
@@ -879,8 +911,22 @@ class TicketController extends Controller
                     $note = "Pengurangan stok dari tiket " . $ticket->code;
                     UpdateSparepartLogService::reduce($item['id'], $item['quantity'], $note);
                 }
+
+                if ($newStatus === 'waiting_verification') {
+                    DB::afterCommit(
+                        function () use ($ticket) {
+                            event(
+                                new TicketCompleted(
+                                    $ticket
+                                )
+                            );
+                        }
+                    );
+                }
             }
         );
+
+
 
         return back()->with(
             'success',
@@ -967,6 +1013,16 @@ class TicketController extends Controller
                     description: $validated['note']
                         ?: 'Pekerjaan telah diverifikasi dan dinyatakan selesai.',
                     employeeId: $employeeId,
+                );
+
+                DB::afterCommit(
+                    function () use ($ticket) {
+                        event(
+                            new TicketVerified(
+                                $ticket
+                            )
+                        );
+                    }
                 );
             }
         );
@@ -1375,7 +1431,7 @@ class TicketController extends Controller
 
             'detail' => $ticket->description,
 
-            'location' => $ticket->division?->name,
+            'location' => $ticket->location?->name,
 
             'priority' => $ticket->priority,
 
@@ -1393,7 +1449,7 @@ class TicketController extends Controller
                     $pic->employee
                 ) : null,
 
-                
+
             'technician_ids' =>
             $ticket
                 ->technicians
@@ -1527,7 +1583,7 @@ class TicketController extends Controller
 
             'detail' => $ticket->description,
 
-            'location' => $ticket->division?->name,
+            'location' => $ticket->location?->name,
 
             'priority' => $ticket->priority,
 

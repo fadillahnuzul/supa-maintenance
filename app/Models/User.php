@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Models\Notifications\DatabaseNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -10,9 +12,11 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Override;
 
 /**
  * @property int $id
@@ -82,6 +86,14 @@ class User extends Authenticatable
     public function getTable(): string
     {
         return app()->environment('testing') ? 'users' : 'core.employees';
+    }
+
+    public function notifications() : MorphMany
+    {
+        return $this->morphMany(
+            DatabaseNotification::class,
+            'notifiable'
+        )->latest();
     }
 
     public function roles(): BelongsToMany

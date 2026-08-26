@@ -951,10 +951,7 @@ export default function TicketShow({
                                         <CheckCircle2
                                             size={20}
                                         />
-
-                                        Pekerjaan
-                                        Selesai dan
-                                        Terverifikasi
+                                        Pekerjaan Selesai dan Terverifikasi
                                     </div>
 
                                     <div className="mt-3 grid gap-3 md:grid-cols-3">
@@ -1041,8 +1038,7 @@ export default function TicketShow({
                                                 }
                                             />
 
-                                            Tolak
-                                            Verifikasi
+                                            Tolak Verifikasi
                                         </button>
 
                                         <button
@@ -1063,8 +1059,7 @@ export default function TicketShow({
                                                 }
                                             />
 
-                                            Verifikasi
-                                            Selesai
+                                            Verifikasi Selesai
                                         </button>
                                     </>
                                 )}
@@ -1270,7 +1265,7 @@ export default function TicketShow({
                                 ].map((statusOption) => (
                                     <label
                                         key={statusOption.value}
-                                        className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition ${progressForm.data.progress_status ===
+                                        className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-4 text-xs font-medium transition ${progressForm.data.progress_status ===
                                             statusOption.value
                                             ? 'border-green-600 bg-green-50 text-green-700'
                                             : 'border-gray-300 bg-white text-gray-700 hover:border-green-500'
@@ -1634,8 +1629,7 @@ export default function TicketShow({
 
                             <div className="mt-4">
                                 <label className="mb-1.5 block text-sm font-semibold text-gray-800">
-                                    Catatan
-                                    Verifikasi
+                                    Catatan Verifikasi
                                 </label>
 
                                 <textarea
@@ -1656,7 +1650,7 @@ export default function TicketShow({
                                         )
                                     }
                                     placeholder="Catatan hasil pemeriksaan..."
-                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-purple-600"
+                                    className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-purple-600 text-gray-700"
                                 />
                             </div>
 
