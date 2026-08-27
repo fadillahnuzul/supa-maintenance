@@ -1183,14 +1183,6 @@ class TicketController extends Controller
 
     private function currentEmployeeId(): int
     {
-        /*
-         * Jika model login Anda langsung menggunakan
-         * core.employees, Auth::id() sudah benar.
-         *
-         * Jika nanti users dan employees berbeda,
-         * cukup ubah helper ini saja.
-         */
-
         $employeeId =
             Auth::id();
 

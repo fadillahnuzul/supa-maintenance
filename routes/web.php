@@ -33,6 +33,9 @@ Route::middleware('auth')->group(function () {
 
 
     // Sparepart routes
+    Route::get(
+        '/spareparts/export', [SparepartController::class,'export']
+    )->name('spareparts.export');
     Route::resource('/spareparts', SparepartController::class);
 
     Route::patch(

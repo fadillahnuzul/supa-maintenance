@@ -12,6 +12,7 @@ import {
     Printer,
     Search,
     Trash2,
+    FileSpreadsheet
 } from 'lucide-react';
 
 import {
@@ -57,6 +58,7 @@ type HistoryType =
     | 'Tambah'
     | 'Kurang'
     | 'Tiket'
+    | 'Hapus'
     | 'Penyesuaian';
 
 type Building = {
@@ -103,6 +105,7 @@ type StockHistory = {
 
     sparepart_id: number;
     sparepart: string;
+    name: string;
 
     type: HistoryType;
 
@@ -111,6 +114,7 @@ type StockHistory = {
     | 'addition'
     | 'reduction'
     | 'ticket'
+    | 'delete'
     | 'adjustment';
 
     change: number;
@@ -215,12 +219,17 @@ const historyStyles: Record<
     Kurang:
         'bg-[#ffd9d2] text-[#e65345]',
 
+    Hapus:
+        'bg-[#ffd9d2] text-[#e65345]',
+
     Tiket:
         'bg-[#d6effc] text-[#4c9dd2]',
 
     Penyesuaian:
         'bg-[#ede9fe] text-[#7c3aed]',
 };
+
+
 
 /* ================================================================
  * COMPONENT
@@ -493,6 +502,41 @@ export default function SparepartIndex({
         );
     };
 
+    const exportExcel = () => {
+        const params =
+            new URLSearchParams();
+
+        if (search.trim()) {
+            params.set(
+                'search',
+                search.trim(),
+            );
+        }
+
+        if (statusFilter) {
+            params.set(
+                'status',
+                statusFilter,
+            );
+        }
+
+        if (buildingFilter) {
+            params.set(
+                'building_id',
+                buildingFilter,
+            );
+        }
+
+        const query =
+            params.toString();
+
+        window.location.href =
+            `/spareparts/export${query
+                ? `?${query}`
+                : ''
+            }`;
+    };
+
     return (
         <>
             <Head title="Daftar Sparepart" />
@@ -519,14 +563,14 @@ export default function SparepartIndex({
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
-                                onClick={() =>
-                                    window.print()
+                                onClick={
+                                    exportExcel
                                 }
                                 className="flex h-11 items-center gap-2 rounded-xl bg-[#4f86f7] px-4 text-base font-medium text-white transition hover:bg-blue-600"
                             >
-                                Print Laporan
+                                Export Excel
 
-                                <Printer
+                                <FileSpreadsheet
                                     size={18}
                                 />
                             </button>
@@ -837,14 +881,14 @@ export default function SparepartIndex({
                                                                         {
                                                                             item.status
                                                                         }
-                                                                    <Edit3
-                                                                        size={
-                                                                            14
-                                                                        }
-                                                                        strokeWidth={
-                                                                            2.3
-                                                                        }
-                                                                    />
+                                                                        <Edit3
+                                                                            size={
+                                                                                14
+                                                                            }
+                                                                            strokeWidth={
+                                                                                2.3
+                                                                            }
+                                                                        />
                                                                     </span>
                                                                 </button>
                                                             </DropdownMenuTrigger>

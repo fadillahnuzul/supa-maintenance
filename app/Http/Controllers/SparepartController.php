@@ -2,153 +2,55 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SparepartsExport;
 use App\Models\BuildingModel;
 use App\Models\Sparepart\SparepartModel;
 use App\Models\Sparepart\SparepartStockLogModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Auth;
 
 class SparepartController extends Controller
 {
-    /**
-     * ============================================================
-     * INDEX
-     * ============================================================
-     */
     public function index(Request $request)
     {
         $query = SparepartModel::query()
-            ->with([
-                'building:id,name',
-            ]);
+            ->with('building:id,name');
 
-        /*
-        |--------------------------------------------------------------------------
-        | SEARCH
-        |--------------------------------------------------------------------------
-        */
-        if ($request->filled('search')) {
-            $search = trim($request->search);
+        $this->applyFilters($query, $request);
 
-            $query->where(function ($q) use ($search) {
-                $q->where('code', 'ilike', "%{$search}%")
-                    ->orWhere('name', 'ilike', "%{$search}%")
-                    ->orWhere('producer', 'ilike', "%{$search}%")
-                    ->orWhereHas('building', function ($buildingQuery) use ($search) {
-                        $buildingQuery
-                            ->where('code', 'ilike', "%{$search}%")
-                            ->orWhere('name', 'ilike', "%{$search}%");
-                    });
-            });
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER BUILDING
-        |--------------------------------------------------------------------------
-        */
-        if ($request->filled('building_id')) {
-            $query->where(
-                'building_id',
-                $request->integer('building_id')
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTER STATUS
-        |--------------------------------------------------------------------------
-        |
-        | Status tidak disimpan sebagai field "Stok Cukup / Stok Kurang".
-        | Status dihitung berdasarkan:
-        |
-        | On Delivery:
-        | delivery_status = on_delivery
-        |
-        | Stok Kurang:
-        | stock < minimum_stock
-        |
-        | Stok Cukup:
-        | stock >= minimum_stock
-        |
-        */
-        if ($request->filled('status')) {
-            switch ($request->status) {
-                case 'On Delivery':
-                    $query->where(
-                        'delivery_status',
-                        'on_delivery'
-                    );
-                    break;
-
-                case 'Stok Kurang':
-                    $query
-                        ->where(
-                            'delivery_status',
-                            'none'
-                        )
-                        ->whereColumn(
-                            'stock',
-                            '<',
-                            'minimum_stock'
-                        );
-                    break;
-
-                case 'Stok Cukup':
-                    $query
-                        ->where(
-                            'delivery_status',
-                            'none'
-                        )
-                        ->whereColumn(
-                            'stock',
-                            '>=',
-                            'minimum_stock'
-                        );
-                    break;
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | SPAREPART PAGINATION
-        |--------------------------------------------------------------------------
-        */
         $spareparts = $query
             ->orderBy('name')
             ->orderBy('code')
             ->paginate(15)
             ->withQueryString()
-            ->through(function (SparepartModel $sparepart) {
-                return $this->sparepartResource($sparepart);
-            });
+            ->through(
+                fn(SparepartModel $sparepart) =>
+                $this->sparepartResource($sparepart)
+            );
 
-        /*
-        |--------------------------------------------------------------------------
-        | STOCK HISTORY
-        |--------------------------------------------------------------------------
-        */
         $histories = SparepartStockLogModel::query()
             ->with([
                 'sparepart:id,name,producer,unit',
                 'creator',
             ])
             ->latest('created_at')
-            ->paginate(20, ['*'], 'history_page')
+            ->paginate(
+                20,
+                ['*'],
+                'history_page'
+            )
             ->withQueryString()
-            ->through(function (SparepartStockLogModel $log) {
-                return $this->stockLogResource($log);
-            });
+            ->through(
+                fn(SparepartStockLogModel $log) =>
+                $this->stockLogResource($log)
+            );
 
-        /*
-        |--------------------------------------------------------------------------
-        | BUILDING FILTER OPTIONS
-        |--------------------------------------------------------------------------
-        */
         $buildings = BuildingModel::query()
             ->select([
                 'id',
@@ -161,9 +63,7 @@ class SparepartController extends Controller
             'spareparts/index',
             [
                 'spareparts' => $spareparts,
-
                 'histories' => $histories,
-
                 'buildings' => $buildings,
 
                 'filters' => [
@@ -186,11 +86,6 @@ class SparepartController extends Controller
         );
     }
 
-    /**
-     * ============================================================
-     * CREATE
-     * ============================================================
-     */
     public function create()
     {
         $buildings = BuildingModel::query()
@@ -209,11 +104,6 @@ class SparepartController extends Controller
         );
     }
 
-    /**
-     * ============================================================
-     * STORE
-     * ============================================================
-     */
     public function store(Request $request)
     {
         $validated = $this->validateSparepart(
@@ -221,15 +111,7 @@ class SparepartController extends Controller
         );
 
         $sparepart = DB::transaction(
-            function () use (
-                $request,
-                $validated
-            ) {
-                /*
-            |--------------------------------------------------------------------------
-            | IMAGE
-            |--------------------------------------------------------------------------
-            */
+            function () use ($request, $validated) {
                 if ($request->hasFile('image')) {
                     $validated['image'] = $request
                         ->file('image')
@@ -239,46 +121,41 @@ class SparepartController extends Controller
                         );
                 }
 
-                /*
-            |--------------------------------------------------------------------------
-            | CREATE SPAREPART
-            |--------------------------------------------------------------------------
-            */
                 $sparepart = SparepartModel::create(
                     $validated
                 );
 
-                /*
-            |--------------------------------------------------------------------------
-            | INITIAL STOCK LOG
-            |--------------------------------------------------------------------------
-            */
                 if ((float) $sparepart->stock > 0) {
                     SparepartStockLogModel::create([
-                        'sparepart_id' => $sparepart->id,
+                        'sparepart_id' =>
+                        $sparepart->id,
 
-                        'transaction_type' => 'initial',
+                        'transaction_type' =>
+                        'initial',
 
-                        'quantity_change' => $sparepart->stock,
+                        'quantity_change' =>
+                        $sparepart->stock,
 
-                        'stock_before' => 0,
+                        'stock_before' =>
+                        0,
 
-                        'stock_after' => $sparepart->stock,
+                        'stock_after' =>
+                        $sparepart->stock,
 
-                        'reference_type' => null,
+                        'reference_type' =>
+                        null,
 
-                        'reference_id' => null,
+                        'reference_id' =>
+                        null,
 
-                        'reference_code' => null,
+                        'reference_code' =>
+                        null,
 
-                        'note' => 'Stok awal sparepart',
+                        'note' =>
+                        'Stok awal sparepart',
 
-                        /*
-                     * User yang membuat stok awal.
-                     */
                         'created_by' =>
-                        // auth()->id(),
-                        44,
+                        Auth::user()->id,
                     ]);
                 }
 
@@ -297,17 +174,12 @@ class SparepartController extends Controller
             );
     }
 
-    /**
-     * ============================================================
-     * SHOW
-     * ============================================================
-     */
     public function show(
         SparepartModel $sparepart
     ) {
-        $sparepart->load([
-            'building:id,name',
-        ]);
+        $sparepart->load(
+            'building:id,name'
+        );
 
         $histories =
             SparepartStockLogModel::query()
@@ -315,43 +187,35 @@ class SparepartController extends Controller
                 'sparepart_id',
                 $sparepart->id
             )
-            ->with([
-                'creator',
-            ])
+            ->with('creator')
             ->latest('created_at')
             ->limit(100)
             ->get()
-            ->map(function (
-                SparepartStockLogModel $log
-            ) {
-                return $this
-                    ->stockLogResource(
-                        $log
-                    );
-            });
+            ->map(
+                fn(SparepartStockLogModel $log) =>
+                $this->stockLogResource($log)
+            );
 
         return Inertia::render(
             'spareparts/show',
             [
-                'sparepart' => $this->sparepartResource(
+                'sparepart' =>
+                $this->sparepartResource(
                     $sparepart
                 ),
 
-                'histories' => $histories,
+                'histories' =>
+                $histories,
             ]
         );
     }
 
-    /**
-     * ============================================================
-     * EDIT
-     * ============================================================
-     */
-    public function edit(SparepartModel $sparepart)
-    {
-        $sparepart->load([
-            'building:id,name',
-        ]);
+    public function edit(
+        SparepartModel $sparepart
+    ) {
+        $sparepart->load(
+            'building:id,name'
+        );
 
         $buildings = BuildingModel::query()
             ->select([
@@ -364,20 +228,17 @@ class SparepartController extends Controller
         return Inertia::render(
             'spareparts/form',
             [
-                'sparepart' => $this->sparepartResource(
+                'sparepart' =>
+                $this->sparepartResource(
                     $sparepart
                 ),
 
-                'buildings' => $buildings,
+                'buildings' =>
+                $buildings,
             ]
         );
     }
 
-    /**
-     * ============================================================
-     * UPDATE
-     * ============================================================
-     */
     public function update(
         Request $request,
         SparepartModel $sparepart
@@ -391,7 +252,9 @@ class SparepartController extends Controller
                 Rule::unique(
                     SparepartModel::class,
                     'code'
-                )->ignore($sparepart->id),
+                )->ignore(
+                    $sparepart->id
+                ),
             ],
 
             'name' => [
@@ -449,44 +312,37 @@ class SparepartController extends Controller
             ],
         ]);
 
-        DB::transaction(function () use (
-            $request,
-            $validated,
-            $sparepart
-        ) {
-            /*
-        |--------------------------------------------------------------------------
-        | UPDATE IMAGE
-        |--------------------------------------------------------------------------
-        */
-            if ($request->hasFile('image')) {
-                if ($sparepart->image) {
-                    Storage::disk('public')
-                        ->delete($sparepart->image);
+        DB::transaction(
+            function () use (
+                $request,
+                $validated,
+                $sparepart
+            ) {
+                if ($request->hasFile('image')) {
+                    if ($sparepart->image) {
+                        Storage::disk('public')
+                            ->delete(
+                                $sparepart->image
+                            );
+                    }
+
+                    $validated['image'] = $request
+                        ->file('image')
+                        ->store(
+                            'spareparts',
+                            'public'
+                        );
+                } else {
+                    unset(
+                        $validated['image']
+                    );
                 }
 
-                $validated['image'] = $request
-                    ->file('image')
-                    ->store(
-                        'spareparts',
-                        'public'
-                    );
-            } else {
-                unset($validated['image']);
+                $sparepart->update(
+                    $validated
+                );
             }
-
-            /*
-        |--------------------------------------------------------------------------
-        | UPDATE MASTER SPAREPART
-        |--------------------------------------------------------------------------
-        |
-        | Stock tidak ikut di-update.
-        |
-        */
-            $sparepart->update(
-                $validated
-            );
-        });
+        );
 
         return redirect()
             ->route(
@@ -499,60 +355,44 @@ class SparepartController extends Controller
             );
     }
 
-    /**
-     * ============================================================
-     * DELETE / SOFT DELETE
-     * ============================================================
-     */
     public function destroy(
-        Request $request,
         SparepartModel $sparepart
     ) {
-        DB::transaction(
-            function () use (
-                $request,
-                $sparepart
-            ) {
-                $oldValues =
-                    $this->auditPayload(
-                        $sparepart
-                    );
+        SparepartStockLogModel::create([
+            'sparepart_id' => $sparepart->id,
 
-                /*
-                |--------------------------------------------------------------------------
-                | SOFT DELETE MASTER
-                |--------------------------------------------------------------------------
-                */
-                $sparepart->delete();
+            'transaction_type' => 'delete',
 
-                /*
-                |--------------------------------------------------------------------------
-                | AUDIT LOG TETAP DISIMPAN
-                |--------------------------------------------------------------------------
-                */
-                $this->writeAudit(
-                    request: $request,
-                    sparepartId: $sparepart->id,
-                    action: 'delete',
-                    oldValues: $oldValues,
-                    newValues: null
-                );
-            }
-        );
+            'quantity_change' => $sparepart->stock,
+
+            'stock_before' => $sparepart->stock,
+
+            'stock_after' => 0,
+
+            'reference_type' => null,
+
+            'reference_id' => null,
+
+            'reference_code' => null,
+
+            'note' => 'Hapus sparepart ' . $sparepart->name,
+
+            'created_by' =>
+            Auth::user()->id,
+        ]);
+        $sparepart->delete();
+
 
         return redirect()
-            ->route('spareparts.index')
+            ->route(
+                'spareparts.index'
+            )
             ->with(
                 'success',
                 'Sparepart berhasil dihapus.'
             );
     }
 
-    /**
-     * ============================================================
-     * STOCK ADD / REDUCE
-     * ============================================================
-     */
     public function adjustStock(
         Request $request,
         SparepartModel $sparepart
@@ -604,16 +444,7 @@ class SparepartController extends Controller
                 $validated,
                 $sparepart
             ) {
-                /*
-            |--------------------------------------------------------------------------
-            | LOCK ROW
-            |--------------------------------------------------------------------------
-            |
-            | Mencegah dua user mengubah stok sparepart
-            | yang sama pada waktu bersamaan.
-            |
-            */
-                $lockedSparepart =
+                $currentSparepart =
                     SparepartModel::query()
                     ->whereKey(
                         $sparepart->id
@@ -622,33 +453,25 @@ class SparepartController extends Controller
                     ->firstOrFail();
 
                 $stockBefore =
-                    (float) $lockedSparepart->stock;
+                    (float) $currentSparepart
+                        ->stock;
 
                 $quantity =
                     (float) $validated['quantity'];
 
-                /*
-            |--------------------------------------------------------------------------
-            | HITUNG PERUBAHAN
-            |--------------------------------------------------------------------------
-            */
                 $quantityChange = match ($validated['type']) {
                     'reduction',
-                    'ticket' => -$quantity,
+                    'ticket'
+                    => -$quantity,
 
-                    default => $quantity,
+                    default
+                    => $quantity,
                 };
 
                 $stockAfter =
-                    $stockBefore
-                    +
+                    $stockBefore +
                     $quantityChange;
 
-                /*
-            |--------------------------------------------------------------------------
-            | STOCK TIDAK BOLEH NEGATIF
-            |--------------------------------------------------------------------------
-            */
                 if ($stockAfter < 0) {
                     abort(
                         422,
@@ -656,47 +479,42 @@ class SparepartController extends Controller
                     );
                 }
 
-                /*
-            |--------------------------------------------------------------------------
-            | UPDATE CURRENT STOCK
-            |--------------------------------------------------------------------------
-            */
-                $lockedSparepart->update([
-                    'stock' => $stockAfter,
+                $currentSparepart->update([
+                    'stock' =>
+                    $stockAfter,
                 ]);
 
-                /*
-            |--------------------------------------------------------------------------
-            | SIMPAN STOCK LOG
-            |--------------------------------------------------------------------------
-            */
                 SparepartStockLogModel::create([
-                    'sparepart_id' => $lockedSparepart->id,
+                    'sparepart_id' =>
+                    $currentSparepart->id,
 
-                    'transaction_type' => $validated['type'],
+                    'transaction_type' =>
+                    $validated['type'],
 
-                    'quantity_change' => $quantityChange,
+                    'quantity_change' =>
+                    $quantityChange,
 
-                    'stock_before' => $stockBefore,
+                    'stock_before' =>
+                    $stockBefore,
 
-                    'stock_after' => $stockAfter,
+                    'stock_after' =>
+                    $stockAfter,
 
-                    'reference_type' => $validated['reference_type'] ?? null,
+                    'reference_type' =>
+                    $validated['reference_type'] ?? null,
 
-                    'reference_id' => $validated['reference_id'] ?? null,
+                    'reference_id' =>
+                    $validated['reference_id'] ?? null,
 
-                    'reference_code' => $validated['reference_code'] ?? null,
+                    'reference_code' =>
+                    $validated['reference_code'] ?? null,
 
-                    'note' => $validated['note']
+                    'note' =>
+                    $validated['note']
                         ?? null,
 
-                    /*
-                 * ID user yang melakukan
-                 * perubahan stok.
-                 */
                     'created_by' =>
-                    // auth()->id(),
-                    44,
+                    Auth::user()->id,
                 ]);
             }
         );
@@ -707,11 +525,170 @@ class SparepartController extends Controller
         );
     }
 
-    /**
-     * ============================================================
-     * VALIDATION
-     * ============================================================
-     */
+    public function updateDeliveryStatus(
+        Request $request,
+        SparepartModel $sparepart
+    ) {
+        $validated = $request->validate([
+            'delivery_status' => [
+                'required',
+
+                Rule::in([
+                    'none',
+                    'on_delivery',
+                ]),
+            ],
+        ]);
+
+        $sparepart->update([
+            'delivery_status' =>
+            $validated['delivery_status'],
+        ]);
+
+        return back();
+    }
+
+    public function export(
+        Request $request
+    ) {
+        $query = SparepartModel::query()
+            ->with(
+                'building:id,name'
+            );
+
+        $this->applyFilters(
+            $query,
+            $request
+        );
+
+        $spareparts = $query
+            ->orderBy('name')
+            ->orderBy('code')
+            ->get();
+
+        $filename =
+            'Laporan_Sparepart_' .
+            now()->format(
+                'Y-m-d_H-i'
+            ) .
+            '.xlsx';
+
+        return Excel::download(
+            new SparepartsExport(
+                $spareparts
+            ),
+            $filename
+        );
+    }
+
+    private function applyFilters(
+        Builder $query,
+        Request $request
+    ): Builder {
+        if ($request->filled('search')) {
+            $search = trim(
+                $request->input(
+                    'search'
+                )
+            );
+
+            $query->where(
+                function ($q) use (
+                    $search
+                ) {
+                    $q
+                        ->where(
+                            'code',
+                            'ilike',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'name',
+                            'ilike',
+                            "%{$search}%"
+                        )
+                        ->orWhere(
+                            'producer',
+                            'ilike',
+                            "%{$search}%"
+                        )
+                        ->orWhereHas(
+                            'building',
+                            function (
+                                $buildingQuery
+                            ) use (
+                                $search
+                            ) {
+                                $buildingQuery
+                                    ->where(
+                                        'name',
+                                        'ilike',
+                                        "%{$search}%"
+                                    );
+                            }
+                        );
+                }
+            );
+        }
+
+        if (
+            $request->filled(
+                'building_id'
+            )
+        ) {
+            $query->where(
+                'building_id',
+                $request->integer(
+                    'building_id'
+                )
+            );
+        }
+
+        if ($request->filled('status')) {
+            switch ($request->input(
+                    'status'
+                )) {
+                case 'On Delivery':
+                    $query->where(
+                        'delivery_status',
+                        'on_delivery'
+                    );
+
+                    break;
+
+                case 'Stok Kurang':
+                    $query
+                        ->where(
+                            'delivery_status',
+                            'none'
+                        )
+                        ->whereColumn(
+                            'stock',
+                            '<',
+                            'minimum_stock'
+                        );
+
+                    break;
+
+                case 'Stok Cukup':
+                    $query
+                        ->where(
+                            'delivery_status',
+                            'none'
+                        )
+                        ->whereColumn(
+                            'stock',
+                            '>=',
+                            'minimum_stock'
+                        );
+
+                    break;
+            }
+        }
+
+        return $query;
+    }
+
     private function validateSparepart(
         Request $request,
         ?SparepartModel $sparepart = null
@@ -742,14 +719,6 @@ class SparepartController extends Controller
                 'max:150',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | BUILDING
-            |--------------------------------------------------------------------------
-            |
-            | Mengacu ke core.buildings.id.
-            |
-            */
             'building_id' => [
                 'required',
                 'integer',
@@ -766,15 +735,6 @@ class SparepartController extends Controller
                 'min:0',
             ],
 
-            /*
-            |--------------------------------------------------------------------------
-            | STOCK
-            |--------------------------------------------------------------------------
-            |
-            | Required saat create.
-            | Saat edit nilainya akan di-ignore.
-            |
-            */
             'stock' => [
                 $sparepart
                     ? 'nullable'
@@ -812,93 +772,106 @@ class SparepartController extends Controller
         ]);
     }
 
-    /**
-     * ============================================================
-     * SPAREPART RESPONSE
-     * ============================================================
-     */
     private function sparepartResource(
         SparepartModel $sparepart
     ): array {
         return [
-            'id' => $sparepart->id,
+            'id' =>
+            $sparepart->id,
 
-            'code' => $sparepart->code,
+            'code' =>
+            $sparepart->code,
 
-            'name' => $sparepart->name,
+            'name' =>
+            $sparepart->name,
 
-            'producer' => $sparepart->producer,
+            'producer' =>
+            $sparepart->producer,
 
-            'building_id' => $sparepart->building_id,
+            'building_id' =>
+            $sparepart->building_id,
 
-            'building' => $sparepart->building
+            'building' =>
+            $sparepart->building
                 ? [
-                    'id' => $sparepart
+                    'id' =>
+                    $sparepart
                         ->building
                         ->id,
 
-                    'name' => $sparepart
+                    'name' =>
+                    $sparepart
                         ->building
                         ->name,
                 ]
                 : null,
 
-            'minimum_stock' => (float) $sparepart
-                ->minimum_stock,
+            'minimum_stock' =>
+            (float)
+            $sparepart->minimum_stock,
 
-            'stock' => (float) $sparepart->stock,
+            'stock' =>
+            (float)
+            $sparepart->stock,
 
-            'unit' => $sparepart->unit,
+            'unit' =>
+            $sparepart->unit,
 
-            'delivery_status' => $sparepart
+            'delivery_status' =>
+            $sparepart
                 ->delivery_status,
 
-            'status' => $this->getStockStatus(
+            'status' =>
+            $this->getStockStatus(
                 $sparepart
             ),
 
-            'description' => $sparepart->description,
+            'description' =>
+            $sparepart->description,
 
-            'image' => $sparepart->image,
+            'image' =>
+            $sparepart->image,
 
-            'image_url' => $sparepart->image
+            'image_url' =>
+            $sparepart->image
                 ? Storage::disk('public')
                 ->url(
                     $sparepart->image
                 )
                 : null,
 
-            'created_at' => $sparepart->created_at
+            'created_at' =>
+            $sparepart->created_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
 
-            'updated_at' => $sparepart->updated_at
+            'updated_at' =>
+            $sparepart->updated_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
         ];
     }
 
-    /**
-     * ============================================================
-     * STOCK LOG RESPONSE
-     * ============================================================
-     */
     private function stockLogResource(
         SparepartStockLogModel $log
     ): array {
         return [
-            'id' => $log->id,
+            'id' =>
+            $log->id,
 
-            'date' => $log->created_at
+            'date' =>
+            $log->created_at
                 ?->format(
                     'd/m/Y H:i'
                 ),
 
-            'sparepart_id' => $log->sparepart_id,
+            'sparepart_id' =>
+            $log->sparepart_id,
 
-            'sparepart' => $log->sparepart
+            'sparepart' =>
+            $log->sparepart
                 ? trim(
                     $log->sparepart->name .
                         (
@@ -911,49 +884,51 @@ class SparepartController extends Controller
                 )
                 : '-',
 
-            'type' => $this->stockTypeLabel(
+            'type' =>
+            $this->stockTypeLabel(
                 $log->transaction_type
             ),
 
-            'transaction_type' => $log->transaction_type,
+            'transaction_type' =>
+            $log->transaction_type,
 
-            'change' => (float) $log
-                ->quantity_change,
+            'change' =>
+            (float)
+            $log->quantity_change,
 
-            'stock_before' => (float) $log
-                ->stock_before,
+            'stock_before' =>
+            (float)
+            $log->stock_before,
 
-            'new_stock' => (float) $log
-                ->stock_after,
+            'new_stock' =>
+            (float)
+            $log->stock_after,
 
-            /*
-        |--------------------------------------------------------------------------
-        | USER / CREATOR
-        |--------------------------------------------------------------------------
-        */
-            'created_by' => $log->created_by,
+            'created_by' =>
+            $log->created_by,
 
-            'officer' => $log->creator?->name
+            'officer' =>
+            $log->creator?->name
                 ?? '-',
 
-            'note' => $log->note,
+            'note' =>
+            $log->note,
 
-            'reference_type' => $log->reference_type,
+            'reference_type' =>
+            $log->reference_type,
 
-            'reference_id' => $log->reference_id,
+            'reference_id' =>
+            $log->reference_id,
 
-            'reference_code' => $log->reference_code,
+            'reference_code' =>
+            $log->reference_code,
 
-            'unit' => $log->sparepart?->unit
+            'unit' =>
+            $log->sparepart?->unit
                 ?? '',
         ];
     }
 
-    /**
-     * ============================================================
-     * STATUS CALCULATOR
-     * ============================================================
-     */
     private function getStockStatus(
         SparepartModel $sparepart
     ): string {
@@ -965,128 +940,36 @@ class SparepartController extends Controller
         }
 
         return
-            (float) $sparepart->stock
-            <
-            (float) $sparepart
-                ->minimum_stock
+            (float) $sparepart->stock <
+            (float) $sparepart->minimum_stock
             ? 'Stok Kurang'
             : 'Stok Cukup';
     }
 
-    /**
-     * ============================================================
-     * STOCK TYPE LABEL
-     * ============================================================
-     */
     private function stockTypeLabel(
         string $type
     ): string {
         return match ($type) {
-            'initial' => 'Awal',
+            'initial' =>
+            'Awal',
 
-            'addition' => 'Tambah',
+            'addition' =>
+            'Tambah',
 
-            'reduction' => 'Kurang',
+            'reduction' =>
+            'Kurang',  
 
-            'ticket' => 'Tiket',
+            'ticket' =>
+            'Tiket',
 
-            'adjustment' => 'Penyesuaian',
+            'adjustment' =>
+            'Penyesuaian',
 
-            default => ucfirst($type),
+            'delete' =>
+            'Hapus',
+
+            default =>
+            ucfirst($type),
         };
     }
-
-    /**
-     * ============================================================
-     * AUDIT PAYLOAD
-     * ============================================================
-     */
-    private function auditPayload(
-        SparepartModel $sparepart
-    ): array {
-        return [
-            'code' => $sparepart->code,
-
-            'name' => $sparepart->name,
-
-            'producer' => $sparepart->producer,
-
-            'building_id' => $sparepart->building_id,
-
-            'minimum_stock' => (float) $sparepart
-                ->minimum_stock,
-
-            'stock' => (float) $sparepart->stock,
-
-            'unit' => $sparepart->unit,
-
-            'delivery_status' => $sparepart
-                ->delivery_status,
-
-            'description' => $sparepart->description,
-
-            'image' => $sparepart->image,
-        ];
-    }
-
-    public function updateDeliveryStatus(
-        Request $request,
-        SparepartModel $sparepart
-    ) {
-        $validated = $request->validate([
-            'delivery_status' => [
-                'required',
-                Rule::in([
-                    'none',
-                    'on_delivery',
-                ]),
-            ],
-        ]);
-
-        $sparepart->update([
-            'delivery_status' =>
-            $validated['delivery_status'],
-        ]);
-
-        return back();
-    }
-
-    /**
-     * ============================================================
-     * WRITE AUDIT
-     * ============================================================
-     */
-    // private function writeAudit(
-    //     Request $request,
-    //     int $sparepartId,
-    //     string $action,
-    //     ?array $oldValues,
-    //     ?array $newValues
-    // ): void {
-    //     SparepartAuditLogModel::create([
-    //         'sparepart_id' =>
-    //         $sparepartId,
-
-    //         'action' =>
-    //         $action,
-
-    //         'old_values' =>
-    //         $oldValues,
-
-    //         'new_values' =>
-    //         $newValues,
-
-    //         'changed_by' =>
-    //         auth()->id(),
-
-    //         'ip_address' =>
-    //         $request->ip(),
-
-    //         'user_agent' =>
-    //         $request->userAgent(),
-
-    //         'created_at' =>
-    //         now(),
-    //     ]);
-    // }
 }

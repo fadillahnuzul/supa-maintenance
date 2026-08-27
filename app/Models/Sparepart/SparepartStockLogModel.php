@@ -34,7 +34,7 @@ class SparepartStockLogModel extends Model
 
     public function sparepart()
     {
-        return $this->belongsTo(SparepartModel::class);
+        return $this->belongsTo(SparepartModel::class, 'sparepart_id')->withTrashed();
     }
 
     public function creator()
