@@ -211,16 +211,12 @@ class DashboardController extends Controller
 
         $standardTickets = (clone $ticketQuery)
             ->whereIn('priority', [
-                'Standard',
-                'Standar',
                 'standard',
             ])
             ->count();
 
         $urgentTickets = (clone $ticketQuery)
             ->whereIn('priority', [
-                'Urgent',
-                'Darurat',
                 'urgent',
             ])
             ->count();
