@@ -219,10 +219,9 @@ export default function AppLayout({
                 className={`
                     min-h-screen
                     transition-all duration-300
-                    ${
-                        collapsed
-                            ? 'ml-[88px]'
-                            : 'ml-[265px]'
+                    ${collapsed
+                        ? 'ml-[88px]'
+                        : 'ml-[265px]'
                     }
                 `}
             >
@@ -263,13 +262,13 @@ export default function AppLayout({
                                 {/* Badge */}
                                 {notifications.unread_count >
                                     0 && (
-                                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                                        {notifications.unread_count >
-                                        99
-                                            ? '99+'
-                                            : notifications.unread_count}
-                                    </span>
-                                )}
+                                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                                            {notifications.unread_count >
+                                                99
+                                                ? '99+'
+                                                : notifications.unread_count}
+                                        </span>
+                                    )}
                             </button>
 
                             {/* DROPDOWN */}
@@ -293,29 +292,29 @@ export default function AppLayout({
 
                                         {notifications.unread_count >
                                             0 && (
-                                            <button
-                                                type="button"
-                                                onClick={
-                                                    markAllAsRead
-                                                }
-                                                className="flex items-center gap-1.5 text-xs font-semibold text-[#32a936] transition hover:text-green-700"
-                                            >
-                                                <CheckCheck
-                                                    size={
-                                                        16
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        markAllAsRead
                                                     }
-                                                />
+                                                    className="flex items-center gap-1.5 text-xs font-semibold text-[#32a936] transition hover:text-green-700"
+                                                >
+                                                    <CheckCheck
+                                                        size={
+                                                            16
+                                                        }
+                                                    />
 
-                                                Tandai semua
-                                            </button>
-                                        )}
+                                                    Tandai semua
+                                                </button>
+                                            )}
                                     </div>
 
                                     {/* Notification list */}
                                     <div className="max-h-[420px] overflow-y-auto">
                                         {notifications.items
                                             .length ===
-                                        0 ? (
+                                            0 ? (
                                             <div className="flex flex-col items-center justify-center px-5 py-12">
                                                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                                                     <Bell
@@ -356,11 +355,10 @@ export default function AppLayout({
                                                                     notification
                                                                 )
                                                             }
-                                                            className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-gray-50 ${
-                                                                unread
+                                                            className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-gray-50 ${unread
                                                                     ? 'bg-green-50/60'
                                                                     : 'bg-white'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             {/* Icon */}
                                                             <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
@@ -433,11 +431,12 @@ export default function AppLayout({
 
                         <img
                             src={
-                                auth.user?.avatar ||
-                                '/images/default-avatar.jpg'
+                                auth.user?.avatar
+                                    ? `/storage/${auth.user.avatar}`
+                                    : '/images/default-avatar.jpg'
                             }
-                            className="h-14 w-14 rounded-full object-cover"
                             alt="User"
+                            className="h-11 w-11 rounded-full object-cover"
                         />
                     </div>
                 </header>
