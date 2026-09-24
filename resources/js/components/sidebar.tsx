@@ -57,7 +57,7 @@ export default function Sidebar({
             );
         }
 
-        if ((item.href === '/othersettings') || (item.href === '/machines')) {
+        if ((item.href === '/other-settings') || (item.href === '/machines')) {
             return (
                 auth.roles.includes('System Admin') ||
                 auth.roles.includes('Maintenance Supervisor') ||
