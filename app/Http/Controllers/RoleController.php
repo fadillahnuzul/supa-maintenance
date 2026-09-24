@@ -32,6 +32,8 @@ class RoleController extends Controller
 
                     'id_karyawan' => $employee->id_karyawan,
 
+                    'username' => $employee->username,
+
                     'status' => $this->getEmployeeStatus($employee),
 
                     'location' => $this->getEmployeeLocation($employee),

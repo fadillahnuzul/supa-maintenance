@@ -23,10 +23,10 @@ test('guests cannot access the dashboard', function () {
 });
 
 test('users can authenticate using either employee number format', function (string $employeeNumber) {
-    $user = User::factory()->create(['id_karyawan' => '2604010122']);
+    $user = User::factory()->create(['username' => 'maintenance']);
 
     $response = $this->post(route('login.store'), [
-        'id_karyawan' => $employeeNumber,
+        'username' => $employeeNumber,
         'password' => 'password',
     ]);
 
@@ -45,7 +45,7 @@ test('users with two factor enabled are redirected to two factor challenge', fun
     $user = User::factory()->withTwoFactor()->create();
 
     $response = $this->post(route('login'), [
-        'id_karyawan' => $user->id_karyawan,
+        'username' => $user->username,
         'password' => 'password',
     ]);
 
@@ -58,7 +58,7 @@ test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
     $this->post(route('login.store'), [
-        'id_karyawan' => $user->id_karyawan,
+        'username' => $user->username,
         'password' => 'wrong-password',
     ]);
 
@@ -81,7 +81,7 @@ test('users are rate limited', function () {
     RateLimiter::increment(md5('login'.implode('|', ['2604010122', '127.0.0.1'])), amount: 5);
 
     $response = $this->post(route('login.store'), [
-        'id_karyawan' => '2604.01.0122',
+        'username' => '2604.01.0122',
         'password' => 'wrong-password',
     ]);
 

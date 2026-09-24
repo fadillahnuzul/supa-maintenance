@@ -5,7 +5,7 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
-        id_karyawan: '',
+        username: '',
         password: '',
         remember: false,
     });
@@ -144,10 +144,10 @@ export default function Login() {
                             {/* ID Karyawan */}
                             <div>
                                 <label
-                                    htmlFor="id_karyawan"
+                                    htmlFor="username"
                                     className="mb-2 block text-sm font-semibold text-gray-800"
                                 >
-                                    ID Karyawan
+                                    Username
                                 </label>
 
                                 <div className="relative">
@@ -156,15 +156,15 @@ export default function Login() {
                                     </div>
 
                                     <input
-                                        id="id_karyawan"
+                                        id="username"
                                         type="text"
                                         autoComplete="username"
                                         autoFocus
-                                        value={data.id_karyawan}
+                                        value={data.username}
                                         onChange={(e) =>
-                                            setData('id_karyawan', e.target.value)
+                                            setData('username', e.target.value)
                                         }
-                                        placeholder="Contoh: 2604.01.0122 atau 2604010122"
+                                        placeholder="Masukkan username"
                                         className="
                                             h-[52px]
                                             w-full
@@ -187,9 +187,9 @@ export default function Login() {
                                     />
                                 </div>
 
-                                {errors.id_karyawan && (
+                                {errors.username && (
                                     <p className="mt-2 text-sm text-red-500">
-                                        {errors.id_karyawan}
+                                        {errors.username}
                                     </p>
                                 )}
                             </div>

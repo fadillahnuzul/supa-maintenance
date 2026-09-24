@@ -42,9 +42,13 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::authenticateUsing(function (Request $request): ?User {
-            $employeeNumber = str_replace('.', '', trim((string) $request->input('id_karyawan')));
+            $loginValue = str_replace('.', '', trim((string) $request->input(Fortify::username())));
             $user = User::query()
-                ->whereRaw("REPLACE(id_karyawan, '.', '') = ?", [$employeeNumber])
+                ->where(function ($query) use ($loginValue) {
+                    $query
+                        ->whereRaw("REPLACE(username, '.', '') = ?", [$loginValue])
+                        ->orWhereRaw("REPLACE(id_karyawan, '.', '') = ?", [$loginValue]);
+                })
                 ->when(! app()->environment('testing'), function ($query) {
                     $query
                         ->where('is_active', true)

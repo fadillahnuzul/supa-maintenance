@@ -37,6 +37,7 @@ type UserRow = {
     id: number;
     name: string;
     id_karyawan: string;
+    username: string;
     status: string;
     location: string;
     avatar?: string | null;
@@ -140,6 +141,7 @@ export default function RoleManagement({
                         [
                             user.name,
                             user.id_karyawan,
+                            user.username,
                             user.location,
                             roleText,
                         ]
@@ -443,27 +445,31 @@ export default function RoleManagement({
                                 <tr className="bg-black text-white">
                                     <th className="w-[70px] px-3 py-3" />
 
-                                    <th className="px-3 py-3">
+                                    <th className="px-3 py-1">
                                         Nama
                                     </th>
 
-                                    <th className="px-3 py-3">
+                                    <th className="px-3 py-1">
+                                        Username
+                                    </th>
+
+                                    <th className="px-3 py-1">
                                         ID Karyawan
                                     </th>
 
-                                    <th className="px-3 py-3">
+                                    <th className="px-3 py-1">
                                         Role
                                     </th>
 
-                                    <th className="px-3 py-3">
+                                    <th className="px-3 py-1">
                                         Status
                                     </th>
 
-                                    <th className="px-3 py-3">
+                                    <th className="px-3 py-1">
                                         Lokasi Kerja
                                     </th>
 
-                                    <th className="px-3 py-3 text-center">
+                                    <th className="px-3 py-1 text-center">
                                         Aksi
                                     </th>
                                 </tr>
@@ -480,7 +486,7 @@ export default function RoleManagement({
                                             }
                                             className="border-b border-gray-200 hover:bg-gray-50"
                                         >
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-1">
                                                 <div className="h-11 w-11 overflow-hidden rounded-full bg-gray-200">
                                                     {user.avatar ? (
                                                         <img
@@ -504,19 +510,25 @@ export default function RoleManagement({
                                                 </div>
                                             </td>
 
-                                            <td className="px-3 py-2 font-bold text-gray-900">
+                                            <td className="px-3 py-1 font-bold text-gray-900">
                                                 {
                                                     user.name
                                                 }
                                             </td>
 
-                                            <td className="px-3 py-2 text-gray-700">
+                                            <td className="px-3 py-1 text-gray-700">
+                                                {
+                                                    user.username
+                                                }
+                                            </td>
+
+                                            <td className="px-3 py-1 text-gray-700">
                                                 {
                                                     user.id_karyawan
                                                 }
                                             </td>
 
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-1">
                                                 <div className="flex flex-wrap gap-1">
                                                     {user.roles.map(
                                                         (
@@ -537,7 +549,7 @@ export default function RoleManagement({
                                                 </div>
                                             </td>
 
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-1">
                                                 <span
                                                     className={`rounded-md px-2.5 py-1 text-xs font-medium ${user.status ===
                                                             'Aktif'
@@ -552,13 +564,13 @@ export default function RoleManagement({
                                                 </span>
                                             </td>
 
-                                            <td className="px-3 py-2 text-gray-700">
+                                            <td className="px-3 py-1 text-gray-700">
                                                 {
                                                     user.location
                                                 }
                                             </td>
 
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-1 text-center">
                                                 <div className="flex justify-center gap-2">
                                                     <button
                                                         type="button"

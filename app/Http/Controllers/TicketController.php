@@ -1211,6 +1211,7 @@ class TicketController extends Controller
                 'id_karyawan',
                 'first_name',
                 'last_name',
+                'username',
             ])
             ->find($employeeId);
 
