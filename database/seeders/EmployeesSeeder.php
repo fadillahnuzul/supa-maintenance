@@ -1185,12 +1185,12 @@ class EmployeesSeeder extends Seeder
             ]
         ];
 
-        DB::table('employees')->insert($employees);
+        DB::table('core.employees')->insert($employees);
 
         // Karena data di atas membawa ID eksplisit 1-51, sinkronkan sequence PostgreSQL
         // agar insert berikutnya mendapatkan ID sesudah ID terbesar.
         if (DB::getDriverName() === 'pgsql') {
-            DB::statement("SELECT setval(pg_get_serial_sequence('employees', 'id'), COALESCE((SELECT MAX(id) FROM employees), 1), true)");
+            DB::statement("SELECT setval(pg_get_serial_sequence('core.employees', 'id'), COALESCE((SELECT MAX(id) FROM core.employees), 1), true)");
         }
     }
 }
