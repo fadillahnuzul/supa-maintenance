@@ -406,7 +406,7 @@ export default function SparepartShow({
                                         label="Lokasi"
                                         value={
                                             sparepart.building
-                                                ? `${sparepart.building.code} - ${sparepart.building.name}`
+                                                ? `${sparepart.building.name}`
                                                 : '-'
                                         }
                                     />
