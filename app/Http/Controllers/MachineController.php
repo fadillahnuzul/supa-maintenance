@@ -131,14 +131,10 @@ class MachineController extends Controller
 
         $imageUrls = [
             'photo_url' => $request->hasFile('photo')
-                ? Storage::disk('public')->url(
-                    $request->file('photo')->store('machines', 'public')
-                )
+                ? '/storage/' . $request->file('photo')->store('machines', 'public')
                 : null,
             'nameplate_url' => $request->hasFile('nameplate')
-                ? Storage::disk('public')->url(
-                    $request->file('nameplate')->store('machines', 'public')
-                )
+                ? '/storage/' . $request->file('nameplate')->store('machines', 'public')
                 : null,
         ];
 
@@ -311,15 +307,13 @@ class MachineController extends Controller
         $imageUrls = [];
 
         if ($request->hasFile('photo')) {
-            $imageUrls['photo_url'] = Storage::disk('public')->url(
-                $request->file('photo')->store('machines', 'public')
-            );
+            $imageUrls['photo_url'] =
+                '/storage/' . $request->file('photo')->store('machines', 'public');
         }
 
         if ($request->hasFile('nameplate')) {
-            $imageUrls['nameplate_url'] = Storage::disk('public')->url(
-                $request->file('nameplate')->store('machines', 'public')
-            );
+            $imageUrls['nameplate_url'] =
+                '/storage/' . $request->file('nameplate')->store('machines', 'public');
         }
 
         DB::transaction(function () use (

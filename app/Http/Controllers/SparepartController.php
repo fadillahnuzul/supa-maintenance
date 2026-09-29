@@ -834,10 +834,7 @@ class SparepartController extends Controller
 
             'image_url' =>
             $sparepart->image
-                ? Storage::disk('public')
-                ->url(
-                    $sparepart->image
-                )
+                ? '/storage/' . ltrim($sparepart->image, '/')
                 : null,
 
             'created_at' =>

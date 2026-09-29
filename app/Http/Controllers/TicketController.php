@@ -1549,10 +1549,7 @@ class TicketController extends Controller
                 fn($documentation) => [
                     'id' => $documentation->id,
 
-                    'image' => Storage::disk('public')
-                        ->url(
-                            $documentation->image_url
-                        ),
+                    'image' => '/storage/' . ltrim($documentation->image_url, '/'),
 
                     'created_at' => optional(
                         $documentation->created_at
@@ -1626,10 +1623,7 @@ class TicketController extends Controller
             'machine_name' => $ticket->machine?->name,
 
             'image' => $ticket->damage_photo_url
-                ? Storage::disk('public')
-                ->url(
-                    $ticket->damage_photo_url
-                )
+                ? '/storage/' . ltrim($ticket->damage_photo_url, '/')
                 : null,
 
             'created_at' => optional(
