@@ -9,7 +9,8 @@ import {
     Search,
     ShieldCheck,
 } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +45,7 @@ type TicketRow = {
 
     reporter: string | null;
 
-    technician_ids : number[];
+    technician_ids: number[];
     technician: string | null;
 
     status: TicketStatus;
@@ -101,7 +102,7 @@ type Props = {
         verify: boolean;
     };
 
-    userId : number;
+    userId: number;
 };
 
 /*
@@ -111,28 +112,20 @@ type Props = {
 */
 
 const statusStyles: Record<TicketStatus, string> = {
-    pending_approval:
-        'bg-[#fef3c7] text-[#b45309]',
+    pending_approval: 'bg-[#fef3c7] text-[#b45309]',
 
-    rejected:
-        'bg-[#fee2e2] text-[#b91c1c]',
+    rejected: 'bg-[#fee2e2] text-[#b91c1c]',
 
-    assigned:
-        'bg-[#e0f2fe] text-[#0369a1]',
+    assigned: 'bg-[#e0f2fe] text-[#0369a1]',
 
-    in_progress:
-        'bg-[#fef3c7] text-[#a16207]',
+    in_progress: 'bg-[#fef3c7] text-[#a16207]',
 
-    waiting_sparepart:
-        'bg-[#ffedd5] text-[#c2410c]',
+    waiting_sparepart: 'bg-[#ffedd5] text-[#c2410c]',
 
-    waiting_verification:
-        'bg-[#f3e8ff] text-[#7e22ce]',
+    waiting_verification: 'bg-[#f3e8ff] text-[#7e22ce]',
 
-    completed:
-        'bg-[#dcfce7] text-[#166534]',
+    completed: 'bg-[#dcfce7] text-[#166534]',
 };
-
 
 /*
 |--------------------------------------------------------------------------
@@ -145,7 +138,7 @@ export default function TicketIndex({
     technicians,
     filters,
     can,
-    userId
+    userId,
 }: Props) {
     /*
     |--------------------------------------------------------------------------
@@ -153,21 +146,17 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const [statusFilter, setStatusFilter] =
-        useState(filters.status ?? '');
+    const [statusFilter, setStatusFilter] = useState(filters.status ?? '');
 
-    const [priorityFilter, setPriorityFilter] =
-        useState(filters.priority ?? '');
+    const [priorityFilter, setPriorityFilter] = useState(
+        filters.priority ?? '',
+    );
 
-    const [technicianFilter, setTechnicianFilter] =
-        useState(
-            filters.technician_id
-                ? String(filters.technician_id)
-                : '',
-        );
+    const [technicianFilter, setTechnicianFilter] = useState(
+        filters.technician_id ? String(filters.technician_id) : '',
+    );
 
-    const [search, setSearch] =
-        useState(filters.search ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
 
     /*
     |--------------------------------------------------------------------------
@@ -184,39 +173,28 @@ export default function TicketIndex({
         } = {},
     ) => {
         const nextStatus =
-            next.status !== undefined
-                ? next.status
-                : statusFilter;
+            next.status !== undefined ? next.status : statusFilter;
 
         const nextPriority =
-            next.priority !== undefined
-                ? next.priority
-                : priorityFilter;
+            next.priority !== undefined ? next.priority : priorityFilter;
 
         const nextTechnician =
             next.technician_id !== undefined
                 ? next.technician_id
                 : technicianFilter;
 
-        const nextSearch =
-            next.search !== undefined
-                ? next.search
-                : search;
+        const nextSearch = next.search !== undefined ? next.search : search;
 
         router.get(
             '/tickets',
             {
-                status:
-                    nextStatus || undefined,
+                status: nextStatus || undefined,
 
-                priority:
-                    nextPriority || undefined,
+                priority: nextPriority || undefined,
 
-                technician_id:
-                    nextTechnician || undefined,
+                technician_id: nextTechnician || undefined,
 
-                search:
-                    nextSearch || undefined,
+                search: nextSearch || undefined,
             },
             {
                 preserveState: true,
@@ -232,9 +210,7 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const handleStatusChange = (
-        value: string,
-    ) => {
+    const handleStatusChange = (value: string) => {
         setStatusFilter(value);
 
         applyFilter({
@@ -248,9 +224,7 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const handlePriorityChange = (
-        value: string,
-    ) => {
+    const handlePriorityChange = (value: string) => {
         setPriorityFilter(value);
 
         applyFilter({
@@ -264,9 +238,7 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const handleTechnicianChange = (
-        value: string,
-    ) => {
+    const handleTechnicianChange = (value: string) => {
         setTechnicianFilter(value);
 
         applyFilter({
@@ -280,9 +252,7 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const submitSearch = (
-        event: FormEvent,
-    ) => {
+    const submitSearch = (event: FormEvent) => {
         event.preventDefault();
 
         applyFilter({
@@ -329,12 +299,8 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const openShow = (
-        id: number,
-    ) => {
-        router.visit(
-            `/tickets/${encodeURIComponent(id)}`,
-        );
+    const openShow = (id: number) => {
+        router.visit(`/tickets/${encodeURIComponent(id)}`);
     };
 
     /*
@@ -343,12 +309,8 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const openApproval = (
-        id: number,
-    ) => {
-        router.visit(
-            `/tickets/${encodeURIComponent(id)}/approval`,
-        );
+    const openApproval = (id: number) => {
+        router.visit(`/tickets/${encodeURIComponent(id)}/approval`);
     };
 
     /*
@@ -357,27 +319,17 @@ export default function TicketIndex({
     |--------------------------------------------------------------------------
     */
 
-    const getActionButton = (
-        ticket: TicketRow,
-    ) => {
+    const getActionButton = (ticket: TicketRow) => {
         /*
          * PENDING APPROVAL
          */
 
-        if (
-            ticket.status ===
-                'pending_approval' &&
-            can.approve
-        ) {
+        if (ticket.status === 'pending_approval' && can.approve) {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <button
                         type="button"
-                        onClick={() =>
-                            openApproval(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openApproval(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
                         title="Approval"
                         aria-label="Approval"
@@ -386,11 +338,7 @@ export default function TicketIndex({
                     </button>
                     <button
                         type="button"
-                        onClick={() =>
-                            openShow(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openShow(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
                         title="Lihat Detail"
                         aria-label="Lihat Detail"
@@ -407,22 +355,16 @@ export default function TicketIndex({
          */
 
         if (
-            (
-            ticket.status === 'assigned' ||
-            ticket.status === 'in_progress' ||
-            ticket.status ===
-                'waiting_sparepart'
-            ) && ticket.technician_ids.includes(userId)
+            (ticket.status === 'assigned' ||
+                ticket.status === 'in_progress' ||
+                ticket.status === 'waiting_sparepart') &&
+            ticket.technician_ids.includes(userId)
         ) {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <button
                         type="button"
-                        onClick={() =>
-                            openShow(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openShow(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
                         title="Update Progress"
                         aria-label="Update Progress"
@@ -432,11 +374,7 @@ export default function TicketIndex({
 
                     <button
                         type="button"
-                        onClick={() =>
-                            openShow(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openShow(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
                         title="Lihat Detail"
                         aria-label="Lihat Detail"
@@ -451,36 +389,22 @@ export default function TicketIndex({
          * WAITING VERIFICATION
          */
 
-        if (
-            ticket.status ===
-                'waiting_verification' &&
-            can.verify
-        ) {
+        if (ticket.status === 'waiting_verification' && can.verify) {
             return (
                 <div className="flex items-center justify-center gap-2">
                     <button
                         type="button"
-                        onClick={() =>
-                            openShow(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openShow(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#9333ea] text-white shadow-sm transition hover:bg-[#7e22ce]"
                         title="Verification"
                         aria-label="Verification"
                     >
-                        <ShieldCheck
-                            size={18}
-                        />
+                        <ShieldCheck size={18} />
                     </button>
 
                     <button
                         type="button"
-                        onClick={() =>
-                            openShow(
-                                ticket.id,
-                            )
-                        }
+                        onClick={() => openShow(ticket.id)}
                         className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
                         title="Lihat Detail"
                         aria-label="Lihat Detail"
@@ -499,11 +423,7 @@ export default function TicketIndex({
             <div className="flex items-center justify-center">
                 <button
                     type="button"
-                    onClick={() =>
-                        openShow(
-                            ticket.id,
-                        )
-                    }
+                    onClick={() => openShow(ticket.id)}
                     className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3b82f6] text-white shadow-sm transition hover:bg-[#2563eb]"
                     title="Lihat Detail"
                     aria-label="Lihat Detail"
@@ -529,27 +449,24 @@ export default function TicketIndex({
                     HEADER
                 ======================================================== */}
 
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+                <div className="mb-4 flex flex-col items-stretch justify-between gap-3 px-1 sm:flex-row sm:items-center">
                     <div>
-                        <h3 className="text-[24px] font-extrabold text-[#111827]">
-                            Daftar Pengerjaan &amp;
-                            Approval
+                        <h3 className="text-xl font-extrabold text-[#111827] sm:text-2xl">
+                            Daftar Pengerjaan &amp; Approval
                         </h3>
 
                         <p className="mt-1 text-sm text-[#6b7280]">
-                            Kelola tiket perbaikan,
-                            pengerjaan, approval,
-                            dan verification.
+                            Kelola tiket perbaikan, pengerjaan, approval, dan
+                            verification.
                         </p>
                     </div>
 
                     <button
                         type="button"
                         onClick={openCreate}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#22c55e] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#16a34a]"
+                        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#22c55e] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#16a34a] sm:w-auto"
                     >
                         <Plus size={18} />
-
                         Buat Tiket
                     </button>
                 </div>
@@ -558,37 +475,27 @@ export default function TicketIndex({
                     FILTER
                 ======================================================== */}
 
-                <div className="mb-4 flex flex-wrap items-center gap-2.5">
+                <div className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:flex xl:flex-wrap xl:items-center">
                     {/* STATUS */}
 
-                    <div className="min-w-[190px] rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
+                    <div className="min-w-0 rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
                         <select
-                            value={
-                                statusFilter
-                            }
+                            aria-label="Filter status"
+                            value={statusFilter}
                             onChange={(event) =>
-                                handleStatusChange(
-                                    event.target
-                                        .value,
-                                )
+                                handleStatusChange(event.target.value)
                             }
-                            className="w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
+                            className="min-h-6 w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
                         >
-                            <option value="">
-                                Semua Status
-                            </option>
+                            <option value="">Semua Status</option>
 
                             <option value="pending_approval">
                                 Pending Approval
                             </option>
 
-                            <option value="assigned">
-                                Assigned
-                            </option>
+                            <option value="assigned">Assigned</option>
 
-                            <option value="in_progress">
-                                In Progress
-                            </option>
+                            <option value="in_progress">In Progress</option>
 
                             <option value="waiting_sparepart">
                                 Waiting Sparepart
@@ -598,82 +505,52 @@ export default function TicketIndex({
                                 Waiting Verification
                             </option>
 
-                            <option value="completed">
-                                Completed
-                            </option>
+                            <option value="completed">Completed</option>
 
-                            <option value="rejected">
-                                Rejected
-                            </option>
+                            <option value="rejected">Rejected</option>
                         </select>
                     </div>
 
                     {/* PRIORITY */}
 
-                    <div className="min-w-[175px] rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
+                    <div className="min-w-0 rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
                         <select
-                            value={
-                                priorityFilter
-                            }
+                            aria-label="Filter prioritas"
+                            value={priorityFilter}
                             onChange={(event) =>
-                                handlePriorityChange(
-                                    event.target
-                                        .value,
-                                )
+                                handlePriorityChange(event.target.value)
                             }
-                            className="w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
+                            className="min-h-6 w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
                         >
-                            <option value="">
-                                Semua Prioritas
-                            </option>
+                            <option value="">Semua Prioritas</option>
 
-                            <option value="urgent">
-                                Urgent
-                            </option>
+                            <option value="urgent">Urgent</option>
 
-                            <option value="standard">
-                                Standar
-                            </option>
+                            <option value="standard">Standar</option>
                         </select>
                     </div>
 
                     {/* TECHNICIAN */}
 
-                    <div className="min-w-[190px] rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
+                    <div className="min-w-0 rounded-xl border border-[#dfe3e8] bg-white px-3 py-2.5 text-[#4b5563] shadow-sm">
                         <select
-                            value={
-                                technicianFilter
-                            }
+                            aria-label="Filter teknisi"
+                            value={technicianFilter}
                             onChange={(event) =>
-                                handleTechnicianChange(
-                                    event.target
-                                        .value,
-                                )
+                                handleTechnicianChange(event.target.value)
                             }
-                            className="w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
+                            className="min-h-6 w-full cursor-pointer bg-transparent text-sm font-medium outline-none"
                         >
-                            <option value="">
-                                Semua Teknisi
-                            </option>
+                            <option value="">Semua Teknisi</option>
 
-                            {technicians.map(
-                                (
-                                    technician,
-                                ) => (
-                                    <option
-                                        key={
-                                            technician.id
-                                        }
-                                        value={
-                                            technician.id
-                                        }
-                                    >
-                                        {
-                                            technician.name
-                                        }
-                                    </option>
-                                ),
-                            )}
+                            {technicians.map((technician) => (
+                                <option
+                                    key={technician.id}
+                                    value={technician.id}
+                                >
+                                    {technician.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -681,7 +558,7 @@ export default function TicketIndex({
 
                     <form
                         onSubmit={submitSearch}
-                        className="ml-auto flex min-w-[260px] items-center overflow-hidden rounded-xl border border-[#dfe3e8] bg-white shadow-sm"
+                        className="col-span-1 flex min-w-0 items-center overflow-hidden rounded-xl border border-[#dfe3e8] bg-white shadow-sm sm:col-span-2 xl:ml-auto xl:w-72 xl:flex-none"
                     >
                         <div className="flex flex-1 items-center gap-2 px-3">
                             <Search
@@ -692,23 +569,17 @@ export default function TicketIndex({
                             <input
                                 type="text"
                                 value={search}
-                                onChange={(
-                                    event,
-                                ) =>
-                                    setSearch(
-                                        event
-                                            .target
-                                            .value,
-                                    )
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
                                 }
                                 placeholder="Cari tiket..."
-                                className="w-full border-0 bg-transparent py-2.5 text-sm text-[#111827] outline-none placeholder:text-[#9ca3af]"
+                                className="w-full min-w-0 border-0 bg-transparent py-2.5 text-sm text-[#111827] outline-none placeholder:text-[#9ca3af]"
                             />
                         </div>
 
                         <button
                             type="submit"
-                            className="border-l border-[#dfe3e8] bg-[#f9fafb] px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-[#f3f4f6]"
+                            className="min-h-11 shrink-0 border-l border-[#dfe3e8] bg-[#f9fafb] px-4 py-2.5 text-sm font-semibold text-[#374151] transition hover:bg-[#f3f4f6]"
                         >
                             Cari
                         </button>
@@ -722,10 +593,8 @@ export default function TicketIndex({
                         search) && (
                         <button
                             type="button"
-                            onClick={
-                                resetFilter
-                            }
-                            className="rounded-xl border border-[#dfe3e8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6b7280] shadow-sm transition hover:bg-[#f9fafb]"
+                            onClick={resetFilter}
+                            className="min-h-11 w-full rounded-xl border border-[#dfe3e8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6b7280] shadow-sm transition hover:bg-[#f9fafb] sm:col-span-2 xl:w-auto"
                         >
                             Reset
                         </button>
@@ -736,12 +605,100 @@ export default function TicketIndex({
                     TABLE
                 ======================================================== */}
 
-                <div className="overflow-hidden rounded-xl border border-[#dfe3e8] bg-white shadow-sm">
+                <div className="space-y-3 xl:hidden">
+                    {tickets.data.map((ticket) => (
+                        <article
+                            key={ticket.id}
+                            className="rounded-lg border border-[#dfe3e8] bg-white p-3 shadow-sm"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => openShow(ticket.id)}
+                                        className="text-left font-bold break-all text-[#111827] hover:text-blue-600"
+                                    >
+                                        {ticket.code}
+                                    </button>
+                                    {ticket.created_at && (
+                                        <p className="mt-1 text-xs text-[#6b7280]">
+                                            {ticket.created_at}
+                                        </p>
+                                    )}
+                                </div>
+                                <span
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${statusStyles[ticket.status]}`}
+                                >
+                                    {ticket.status_label}
+                                </span>
+                            </div>
+
+                            <div className="mt-3 border-t border-[#e5e7eb] pt-3">
+                                <p className="font-semibold text-[#111827]">
+                                    {ticket.category_label}
+                                </p>
+                                <p className="mt-1 text-sm break-words text-[#4b5563]">
+                                    {ticket.detail}
+                                </p>
+                            </div>
+
+                            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
+                                <div className="min-w-0">
+                                    <dt className="text-xs text-[#6b7280]">
+                                        Lokasi
+                                    </dt>
+                                    <dd className="mt-0.5 font-medium break-words text-[#111827]">
+                                        {ticket.location || '-'}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs text-[#6b7280]">
+                                        Prioritas
+                                    </dt>
+                                    <dd
+                                        className={`mt-0.5 font-semibold ${ticket.priority === 'urgent' ? 'text-[#dc2626]' : 'text-[#111827]'}`}
+                                    >
+                                        {ticket.priority_label}
+                                    </dd>
+                                </div>
+                                <div className="min-w-0">
+                                    <dt className="text-xs text-[#6b7280]">
+                                        Pelapor
+                                    </dt>
+                                    <dd className="mt-0.5 font-medium break-words text-[#111827]">
+                                        {ticket.reporter || '-'}
+                                    </dd>
+                                </div>
+                                <div className="min-w-0">
+                                    <dt className="text-xs text-[#6b7280]">
+                                        Teknisi
+                                    </dt>
+                                    <dd className="mt-0.5 font-medium break-words text-[#111827]">
+                                        {ticket.technician ||
+                                            'Belum ditentukan'}
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div className="mt-3 flex justify-end border-t border-[#e5e7eb] pt-3">
+                                {getActionButton(ticket)}
+                            </div>
+                        </article>
+                    ))}
+
+                    {tickets.data.length === 0 && (
+                        <div className="rounded-lg border border-[#dfe3e8] bg-white px-4 py-10 text-center text-sm text-[#6b7280]">
+                            Tidak ada tiket yang sesuai dengan filter.
+                        </div>
+                    )}
+                </div>
+
+                <div className="hidden overflow-hidden rounded-xl border border-[#dfe3e8] bg-white shadow-sm xl:block">
                     <div className="overflow-x-auto">
                         <table className="min-w-full border-collapse text-left text-sm text-[#374151]">
                             <thead>
                                 <tr className="bg-[#e5e7eb] text-[#111827]">
-                                    <th className="whitespace-nowrap border border-[#dfe3e8] px-3 py-3 font-bold">
+                                    <th className="border border-[#dfe3e8] px-3 py-3 font-bold whitespace-nowrap">
                                         Kode Tiket
                                     </th>
 
@@ -753,7 +710,7 @@ export default function TicketIndex({
                                         Lokasi
                                     </th>
 
-                                    <th className="whitespace-nowrap border border-[#dfe3e8] px-3 py-3 font-bold">
+                                    <th className="border border-[#dfe3e8] px-3 py-3 font-bold whitespace-nowrap">
                                         Prioritas
                                     </th>
 
@@ -765,153 +722,119 @@ export default function TicketIndex({
                                         Teknisi
                                     </th>
 
-                                    <th className="whitespace-nowrap border border-[#dfe3e8] px-3 py-3 font-bold">
+                                    <th className="border border-[#dfe3e8] px-3 py-3 font-bold whitespace-nowrap">
                                         Status
                                     </th>
 
-                                    <th className="w-[125px] whitespace-nowrap border border-[#dfe3e8] px-3 py-3 text-center font-bold">
+                                    <th className="w-[125px] border border-[#dfe3e8] px-3 py-3 text-center font-bold whitespace-nowrap">
                                         Aksi
                                     </th>
                                 </tr>
                             </thead>
 
                             <tbody>
-                                {tickets.data.map(
-                                    (ticket) => (
-                                        <tr
-                                            key={
-                                                ticket.id
-                                            }
-                                            className="bg-white transition hover:bg-[#f9fafb]"
-                                        >
-                                            {/* CODE */}
+                                {tickets.data.map((ticket) => (
+                                    <tr
+                                        key={ticket.id}
+                                        className="bg-white transition hover:bg-[#f9fafb]"
+                                    >
+                                        {/* CODE */}
 
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        openShow(
-                                                            ticket.id,
-                                                        )
-                                                    }
-                                                    className="text-left font-semibold text-[#111827] transition hover:text-blue-600"
-                                                >
-                                                    {
-                                                        ticket.code
-                                                    }
-                                                </button>
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    openShow(ticket.id)
+                                                }
+                                                className="text-left font-semibold text-[#111827] transition hover:text-blue-600"
+                                            >
+                                                {ticket.code}
+                                            </button>
 
-                                                {ticket.created_at && (
-                                                    <span className="mt-1 block whitespace-nowrap text-[11px] text-[#9ca3af]">
-                                                        {
-                                                            ticket.created_at
-                                                        }
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            {/* CATEGORY */}
-
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top">
-                                                <span className="block font-semibold text-[#111827]">
-                                                    {
-                                                        ticket.category_label
-                                                    }
+                                            {ticket.created_at && (
+                                                <span className="mt-1 block text-[11px] whitespace-nowrap text-[#9ca3af]">
+                                                    {ticket.created_at}
                                                 </span>
+                                            )}
+                                        </td>
 
-                                                <span className="mt-0.5 block max-w-[350px] break-words text-[#4b5563]">
-                                                    {
-                                                        ticket.detail
-                                                    }
+                                        {/* CATEGORY */}
+
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top">
+                                            <span className="block font-semibold text-[#111827]">
+                                                {ticket.category_label}
+                                            </span>
+
+                                            <span className="mt-0.5 block max-w-[350px] break-words text-[#4b5563]">
+                                                {ticket.detail}
+                                            </span>
+                                        </td>
+
+                                        {/* LOCATION */}
+
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
+                                            {ticket.location || '-'}
+                                        </td>
+
+                                        {/* PRIORITY */}
+
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top">
+                                            <span
+                                                className={
+                                                    ticket.priority === 'urgent'
+                                                        ? 'font-bold text-[#dc2626]'
+                                                        : 'font-medium text-[#111827]'
+                                                }
+                                            >
+                                                {ticket.priority_label}
+                                            </span>
+                                        </td>
+
+                                        {/* REPORTER */}
+
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
+                                            {ticket.reporter || '-'}
+                                        </td>
+
+                                        {/* TECHNICIAN */}
+
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
+                                            {ticket.technician ? (
+                                                ticket.technician
+                                            ) : (
+                                                <span className="text-[#9ca3af]">
+                                                    Belum ditentukan
                                                 </span>
-                                            </td>
+                                            )}
+                                        </td>
 
-                                            {/* LOCATION */}
+                                        {/* STATUS */}
 
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
-                                                {ticket.location ||
-                                                    '-'}
-                                            </td>
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-top">
+                                            <span
+                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${
+                                                    statusStyles[ticket.status]
+                                                }`}
+                                            >
+                                                {ticket.status_label}
+                                            </span>
+                                        </td>
 
-                                            {/* PRIORITY */}
+                                        {/* ACTION */}
 
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top">
-                                                <span
-                                                    className={
-                                                        ticket.priority ===
-                                                        'urgent'
-                                                            ? 'font-bold text-[#dc2626]'
-                                                            : 'font-medium text-[#111827]'
-                                                    }
-                                                >
-                                                    {
-                                                        ticket.priority_label
-                                                    }
-                                                </span>
-                                            </td>
+                                        <td className="border border-[#dfe3e8] px-3 py-3 align-middle">
+                                            {getActionButton(ticket)}
+                                        </td>
+                                    </tr>
+                                ))}
 
-                                            {/* REPORTER */}
-
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
-                                                {ticket.reporter ||
-                                                    '-'}
-                                            </td>
-
-                                            {/* TECHNICIAN */}
-
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top text-[#111827]">
-                                                {ticket.technician ? (
-                                                    ticket.technician
-                                                ) : (
-                                                    <span className="text-[#9ca3af]">
-                                                        Belum
-                                                        ditentukan
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            {/* STATUS */}
-
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-top">
-                                                <span
-                                                    className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                        statusStyles[
-                                                            ticket
-                                                                .status
-                                                        ]
-                                                    }`}
-                                                >
-                                                    {
-                                                        ticket.status_label
-                                                    }
-                                                </span>
-                                            </td>
-
-                                            {/* ACTION */}
-
-                                            <td className="border border-[#dfe3e8] px-3 py-3 align-middle">
-                                                {getActionButton(
-                                                    ticket,
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ),
-                                )}
-
-                                {tickets.data
-                                    .length ===
-                                    0 && (
+                                {tickets.data.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={
-                                                8
-                                            }
+                                            colSpan={8}
                                             className="px-4 py-10 text-center text-sm text-[#6b7280]"
                                         >
-                                            Tidak ada
-                                            tiket yang
-                                            sesuai
-                                            dengan
+                                            Tidak ada tiket yang sesuai dengan
                                             filter.
                                         </td>
                                     </tr>
@@ -925,26 +848,21 @@ export default function TicketIndex({
                     PAGINATION FOOTER
                 ======================================================== */}
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                     <div className="text-sm text-[#6b7280]">
-                        {tickets.total >
-                        0 ? (
+                        {tickets.total > 0 ? (
                             <>
                                 Menampilkan{' '}
                                 <span className="font-semibold text-[#111827]">
-                                    {tickets.from ??
-                                        0}
+                                    {tickets.from ?? 0}
                                 </span>{' '}
                                 -{' '}
                                 <span className="font-semibold text-[#111827]">
-                                    {tickets.to ??
-                                        0}
+                                    {tickets.to ?? 0}
                                 </span>{' '}
                                 dari{' '}
                                 <span className="font-semibold text-[#111827]">
-                                    {
-                                        tickets.total
-                                    }
+                                    {tickets.total}
                                 </span>{' '}
                                 tiket
                             </>
@@ -953,147 +871,92 @@ export default function TicketIndex({
                         )}
                     </div>
 
-                    {tickets.last_page >
-                        1 && (
-                        <div className="flex items-center gap-1">
+                    {tickets.last_page > 1 && (
+                        <div className="flex max-w-full items-center gap-1 overflow-x-auto">
                             {/* PREVIOUS */}
 
                             <button
                                 type="button"
-                                disabled={
-                                    !tickets.prev_page_url
-                                }
+                                disabled={!tickets.prev_page_url}
                                 onClick={() => {
-                                    if (
-                                        !tickets.prev_page_url
-                                    ) {
+                                    if (!tickets.prev_page_url) {
                                         return;
                                     }
 
-                                    router.visit(
-                                        tickets.prev_page_url,
-                                        {
-                                            preserveScroll:
-                                                true,
-                                            preserveState:
-                                                true,
-                                        },
-                                    );
+                                    router.visit(tickets.prev_page_url, {
+                                        preserveScroll: true,
+                                        preserveState: true,
+                                    });
                                 }}
                                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe3e8] bg-white text-[#4b5563] disabled:opacity-40"
                             >
-                                <ChevronLeft
-                                    size={17}
-                                />
+                                <ChevronLeft size={17} />
                             </button>
 
                             {/* PAGE NUMBER */}
 
                             {tickets.links
                                 .filter(
-                                    (
-                                        _,
-                                        index,
-                                    ) =>
-                                        index !==
-                                            0 &&
-                                        index !==
-                                            tickets
-                                                .links
-                                                .length -
-                                                1,
+                                    (_, index) =>
+                                        index !== 0 &&
+                                        index !== tickets.links.length - 1,
                                 )
-                                .map(
-                                    (
-                                        link,
-                                        index,
-                                    ) => {
-                                        if (
-                                            link.label.includes(
-                                                '...',
-                                            )
-                                        ) {
-                                            return (
-                                                <span
-                                                    key={
-                                                        index
-                                                    }
-                                                    className="flex h-9 min-w-9 items-center justify-center px-2 text-sm text-gray-500"
-                                                >
-                                                    ...
-                                                </span>
-                                            );
-                                        }
-
+                                .map((link, index) => {
+                                    if (link.label.includes('...')) {
                                         return (
-                                            <button
-                                                key={
-                                                    index
-                                                }
-                                                type="button"
-                                                disabled={
-                                                    !link.url
-                                                }
-                                                onClick={() => {
-                                                    if (
-                                                        !link.url
-                                                    ) {
-                                                        return;
-                                                    }
-
-                                                    router.visit(
-                                                        link.url,
-                                                        {
-                                                            preserveScroll:
-                                                                true,
-                                                            preserveState:
-                                                                true,
-                                                        },
-                                                    );
-                                                }}
-                                                className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium ${
-                                                    link.active
-                                                        ? 'border-[#22c55e] bg-[#22c55e] text-white'
-                                                        : 'border-[#dfe3e8] bg-white text-[#4b5563]'
-                                                }`}
+                                            <span
+                                                key={index}
+                                                className="flex h-9 min-w-9 items-center justify-center px-2 text-sm text-gray-500"
                                             >
-                                                {
-                                                    link.label
-                                                }
-                                            </button>
+                                                ...
+                                            </span>
                                         );
-                                    },
-                                )}
+                                    }
+
+                                    return (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            disabled={!link.url}
+                                            onClick={() => {
+                                                if (!link.url) {
+                                                    return;
+                                                }
+
+                                                router.visit(link.url, {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                });
+                                            }}
+                                            className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium ${
+                                                link.active
+                                                    ? 'border-[#22c55e] bg-[#22c55e] text-white'
+                                                    : 'border-[#dfe3e8] bg-white text-[#4b5563]'
+                                            }`}
+                                        >
+                                            {link.label}
+                                        </button>
+                                    );
+                                })}
 
                             {/* NEXT */}
 
                             <button
                                 type="button"
-                                disabled={
-                                    !tickets.next_page_url
-                                }
+                                disabled={!tickets.next_page_url}
                                 onClick={() => {
-                                    if (
-                                        !tickets.next_page_url
-                                    ) {
+                                    if (!tickets.next_page_url) {
                                         return;
                                     }
 
-                                    router.visit(
-                                        tickets.next_page_url,
-                                        {
-                                            preserveScroll:
-                                                true,
-                                            preserveState:
-                                                true,
-                                        },
-                                    );
+                                    router.visit(tickets.next_page_url, {
+                                        preserveScroll: true,
+                                        preserveState: true,
+                                    });
                                 }}
                                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe3e8] bg-white text-[#4b5563] disabled:opacity-40"
                             >
-                                <ChevronRight
-                                    size={17}
-                                />
+                                <ChevronRight size={17} />
                             </button>
                         </div>
                     )}
