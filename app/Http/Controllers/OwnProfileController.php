@@ -69,7 +69,6 @@ class OwnProfileController extends Controller
                 'string',
                 'required_with:current_password',
                 'confirmed',
-                Password::min(8),
             ],
 
             'password_confirmation' => [

@@ -47,6 +47,17 @@ class TicketController extends Controller
             ])
 
             ->when(
+                $this->currentEmployeeHasRole('maintenance_technician'),
+                fn($query) => $query->whereHas(
+                    'technicians',
+                    fn($technician) => $technician->where(
+                        'employee_id',
+                        $userId
+                    )
+                )
+            )
+
+            ->when(
                 $request->filled('status'),
                 fn($query) => $query->whereHas(
                     'status',
@@ -142,6 +153,15 @@ class TicketController extends Controller
                             );
                     });
                 }
+            )
+
+            ->orderBy(
+                TicketStatusModel::query()
+                    ->select('sort_order')
+                    ->whereColumn(
+                        'maintenance.ticket_statuses.id',
+                        'maintenance.tiket.status_id'
+                    )
             )
 
             ->latest('created_at')
