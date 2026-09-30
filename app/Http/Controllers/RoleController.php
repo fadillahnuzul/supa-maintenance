@@ -114,7 +114,7 @@ class RoleController extends Controller
                 'success',
                 'Role pengguna berhasil disimpan.'
             );
-    }
+    } 
 
     public function update(
         Request $request,

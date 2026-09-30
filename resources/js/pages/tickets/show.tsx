@@ -1227,7 +1227,7 @@ export default function TicketShow({
                         onSubmit={
                             submitProgress
                         }
-                        className="w-full max-w-[600px] overflow-hidden rounded-[20px] bg-white shadow-2xl"
+                        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-[600px] flex-col overflow-hidden rounded-[20px] bg-white shadow-2xl"
                     >
                         <ModalHeader
                             title="Update Progress"
@@ -1238,7 +1238,7 @@ export default function TicketShow({
                             }
                         />
 
-                        <div className="p-6">
+                        <div className="min-h-0 flex-1 overflow-y-auto p-6">
                             {/* STATUS */}
 
                             <label className="mb-1.5 block text-sm font-semibold text-gray-800">
@@ -1551,33 +1551,32 @@ export default function TicketShow({
                                 )}
                             </div>
 
-                            {/* ACTION */}
+                        </div>
 
-                            <div className="mt-5 flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowProgressModal(
-                                            false,
-                                        )
-                                    }
-                                    className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
-                                >
-                                    Batal
-                                </button>
+                        <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setShowProgressModal(
+                                        false,
+                                    )
+                                }
+                                className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
+                            >
+                                Batal
+                            </button>
 
-                                <button
-                                    type="submit"
-                                    disabled={
-                                        progressForm.processing
-                                    }
-                                    className="rounded-xl bg-[#22c55e] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                                >
-                                    {progressForm.processing
-                                        ? 'Menyimpan...'
-                                        : 'Simpan Progress'}
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={
+                                    progressForm.processing
+                                }
+                                className="rounded-xl bg-[#22c55e] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                            >
+                                {progressForm.processing
+                                    ? 'Menyimpan...'
+                                    : 'Simpan Progress'}
+                            </button>
                         </div>
                     </form>
                 </ModalOverlay>
