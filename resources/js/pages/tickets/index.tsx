@@ -127,6 +127,20 @@ const statusStyles: Record<TicketStatus, string> = {
     completed: 'bg-[#dcfce7] text-[#166534]',
 };
 
+const visitTicketUrl = (url: string | null) => {
+    if (!url) return;
+
+    const parsed = new URL(url, window.location.origin);
+
+    router.visit(
+        parsed.pathname + parsed.search,
+        {
+            preserveScroll: true,
+            preserveState: true,
+        },
+    );
+};
+
 /*
 |--------------------------------------------------------------------------
 | COMPONENT
@@ -590,14 +604,14 @@ export default function TicketIndex({
                         priorityFilter ||
                         technicianFilter ||
                         search) && (
-                        <button
-                            type="button"
-                            onClick={resetFilter}
-                            className="min-h-11 w-full rounded-xl border border-[#dfe3e8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6b7280] shadow-sm transition hover:bg-[#f9fafb] sm:col-span-2 xl:w-auto"
-                        >
-                            Reset
-                        </button>
-                    )}
+                            <button
+                                type="button"
+                                onClick={resetFilter}
+                                className="min-h-11 w-full rounded-xl border border-[#dfe3e8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6b7280] shadow-sm transition hover:bg-[#f9fafb] sm:col-span-2 xl:w-auto"
+                            >
+                                Reset
+                            </button>
+                        )}
                 </div>
 
                 {/* ========================================================
@@ -811,9 +825,8 @@ export default function TicketIndex({
 
                                         <td className="border border-[#dfe3e8] px-3 py-3 align-top">
                                             <span
-                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${
-                                                    statusStyles[ticket.status]
-                                                }`}
+                                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${statusStyles[ticket.status]
+                                                    }`}
                                             >
                                                 {ticket.status_label}
                                             </span>
@@ -877,15 +890,18 @@ export default function TicketIndex({
                             <button
                                 type="button"
                                 disabled={!tickets.prev_page_url}
-                                onClick={() => {
-                                    if (!tickets.prev_page_url) {
-                                        return;
-                                    }
+                                // onClick={() => {
+                                //     if (!tickets.prev_page_url) {
+                                //         return;
+                                //     }
 
-                                    router.visit(tickets.prev_page_url, {
-                                        preserveScroll: true,
-                                        preserveState: true,
-                                    });
+                                //     router.visit(tickets.prev_page_url, {
+                                //         preserveScroll: true,
+                                //         preserveState: true,
+                                //     });
+                                // }}
+                                onClick={() => {
+                                    visitTicketUrl(tickets.prev_page_url ?? null);
                                 }}
                                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe3e8] bg-white text-[#4b5563] disabled:opacity-40"
                             >
@@ -917,21 +933,23 @@ export default function TicketIndex({
                                             key={index}
                                             type="button"
                                             disabled={!link.url}
-                                            onClick={() => {
-                                                if (!link.url) {
-                                                    return;
-                                                }
+                                            // onClick={() => {
+                                            //     if (!link.url) {
+                                            //         return;
+                                            //     }
 
-                                                router.visit(link.url, {
-                                                    preserveScroll: true,
-                                                    preserveState: true,
-                                                });
+                                            //     router.visit(link.url, {
+                                            //         preserveScroll: true,
+                                            //         preserveState: true,
+                                            //     });
+                                            // }}
+                                            onClick={() => {
+                                                visitTicketUrl(link.url);
                                             }}
-                                            className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium ${
-                                                link.active
-                                                    ? 'border-[#22c55e] bg-[#22c55e] text-white'
-                                                    : 'border-[#dfe3e8] bg-white text-[#4b5563]'
-                                            }`}
+                                            className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium ${link.active
+                                                ? 'border-[#22c55e] bg-[#22c55e] text-white'
+                                                : 'border-[#dfe3e8] bg-white text-[#4b5563]'
+                                                }`}
                                         >
                                             {link.label}
                                         </button>
@@ -943,15 +961,18 @@ export default function TicketIndex({
                             <button
                                 type="button"
                                 disabled={!tickets.next_page_url}
-                                onClick={() => {
-                                    if (!tickets.next_page_url) {
-                                        return;
-                                    }
+                                // onClick={() => {
+                                //     if (!tickets.next_page_url) {
+                                //         return;
+                                //     }
 
-                                    router.visit(tickets.next_page_url, {
-                                        preserveScroll: true,
-                                        preserveState: true,
-                                    });
+                                //     router.visit(tickets.next_page_url, {
+                                //         preserveScroll: true,
+                                //         preserveState: true,
+                                //     });
+                                // }}
+                                onClick={() => {
+                                    visitTicketUrl(tickets.next_page_url ?? null);
                                 }}
                                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe3e8] bg-white text-[#4b5563] disabled:opacity-40"
                             >
