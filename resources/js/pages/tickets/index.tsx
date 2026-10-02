@@ -195,6 +195,8 @@ export default function TicketIndex({
                 technician_id: nextTechnician || undefined,
 
                 search: nextSearch || undefined,
+
+                page: 1,
             },
             {
                 preserveState: true,
@@ -272,15 +274,12 @@ export default function TicketIndex({
         setTechnicianFilter('');
         setSearch('');
 
-        router.get(
-            '/tickets',
-            {},
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        applyFilter({
+            status: '',
+            priority: '',
+            technician_id: '',
+            search: '',
+        });
     };
 
     /*
