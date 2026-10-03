@@ -2,15 +2,14 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MachineController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OthersettingsController;
 use App\Http\Controllers\OwnProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SparepartController;
 use App\Http\Controllers\SparepartStockController;
 use App\Http\Controllers\TicketController;
-use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
     // Dashboard route
@@ -19,8 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])
         ->name('home');
 
-
-    //Notification route
+    // Notification route
     Route::post(
         '/notifications/{notification}/read',
         [NotificationController::class, 'read']
@@ -31,10 +29,9 @@ Route::middleware('auth')->group(function () {
         [NotificationController::class, 'readAll']
     )->name('notifications.read-all');
 
-
     // Sparepart routes
     Route::get(
-        '/spareparts/export', [SparepartController::class,'export']
+        '/spareparts/export', [SparepartController::class, 'export']
     )->name('spareparts.export');
     Route::resource('/spareparts', SparepartController::class);
 
@@ -68,6 +65,20 @@ Route::middleware('auth')->group(function () {
                 '/',
                 [TicketController::class, 'store']
             )->name('store');
+
+            Route::get(
+                '/{ticket:id}/edit',
+                [TicketController::class, 'edit']
+            )
+                ->middleware('role:maintenance_approver,maintenance_admin')
+                ->name('edit');
+
+            Route::put(
+                '/{ticket:id}',
+                [TicketController::class, 'update']
+            )
+                ->middleware('role:maintenance_approver,maintenance_admin')
+                ->name('update');
 
             Route::get(
                 '/{ticket:id}/approval',
@@ -135,7 +146,6 @@ Route::middleware('auth')->group(function () {
         'index',
     ])->name('other-settings.index');
 
-
     /*
     |--------------------------------------------------------------------------
     | Department Production
@@ -156,7 +166,6 @@ Route::middleware('auth')->group(function () {
         OthersettingsController::class,
         'destroyDepartment',
     ])->name('other-settings.departments.destroy');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -195,4 +204,4 @@ Route::middleware('auth')->group(function () {
     ])->name('settings.profile.photo');
 });
 
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

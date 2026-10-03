@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Notification\TicketAssigned;
+use App\Events\Notification\TicketCompleted;
+use App\Events\Notification\TicketCreated;
+use App\Events\Notification\TicketVerified;
 use App\Models\BuildingModel;
 use App\Models\Machine\MachineModel;
 use App\Models\Sparepart\SparepartModel;
@@ -19,10 +23,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use App\Events\Notification\TicketCreated;
-use App\Events\Notification\TicketAssigned;
-use App\Events\Notification\TicketCompleted;
-use App\Events\Notification\TicketVerified;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,10 +47,10 @@ class TicketController extends Controller
             ])
 
             ->when(
-                $this->currentEmployeeHasRole('maintenance_technician'),
-                fn($query) => $query->whereHas(
+                $this->currentEmployeeHasRole('maintenance_technician') && (! $this->currentEmployeeHasRole('maintenance_approver') && ! $this->currentEmployeeHasRole('maintenance_verifier') && ! $this->currentEmployeeHasRole('maintenance_admin') && ! $this->currentEmployeeHasRole('maintenance_admin_system')),
+                fn ($query) => $query->whereHas(
                     'technicians',
-                    fn($technician) => $technician->where(
+                    fn ($technician) => $technician->where(
                         'employee_id',
                         $userId
                     )
@@ -59,9 +59,9 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('status'),
-                fn($query) => $query->whereHas(
+                fn ($query) => $query->whereHas(
                     'status',
-                    fn($status) => $status->where(
+                    fn ($status) => $status->where(
                         'code',
                         $request->string('status')
                     )
@@ -70,7 +70,7 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('priority'),
-                fn($query) => $query->where(
+                fn ($query) => $query->where(
                     'priority',
                     $request->string('priority')
                 )
@@ -78,9 +78,9 @@ class TicketController extends Controller
 
             ->when(
                 $request->filled('technician_id'),
-                fn($query) => $query->whereHas(
+                fn ($query) => $query->whereHas(
                     'technicians',
-                    fn($q) => $q->where(
+                    fn ($q) => $q->where(
                         'employee_id',
                         $request->integer('technician_id')
                     )
@@ -128,7 +128,7 @@ class TicketController extends Controller
 
                             ->orWhereHas(
                                 'location',
-                                fn($location) => $location->where(
+                                fn ($location) => $location->where(
                                     'name',
                                     'ilike',
                                     "%{$search}%"
@@ -171,7 +171,7 @@ class TicketController extends Controller
             ->withQueryString();
 
         $tickets->through(
-            fn(TicketModel $ticket) => $this->ticketIndexResource($ticket)
+            fn (TicketModel $ticket) => $this->ticketIndexResource($ticket)
         );
 
         $technicians = $this->maintenanceTechnicians();
@@ -203,7 +203,7 @@ class TicketController extends Controller
                     ),
                 ],
 
-                'userId' => $userId
+                'userId' => $userId,
             ]
         );
     }
@@ -337,11 +337,11 @@ class TicketController extends Controller
                 if ($request->hasFile('damage_photo')) {
                     $photoPath =
                         $request
-                        ->file('damage_photo')
-                        ->store(
-                            'maintenance/tickets',
-                            'public'
-                        );
+                            ->file('damage_photo')
+                            ->store(
+                                'maintenance/tickets',
+                                'public'
+                            );
                 }
 
                 $ticket = TicketModel::create([
@@ -392,6 +392,203 @@ class TicketController extends Controller
                 'success',
                 'Tiket berhasil dibuat.'
             );
+    }
+
+    public function edit(TicketModel $ticket): Response
+    {
+        $ticket->load('technicians');
+
+        $divisions = BuildingModel::query()
+            ->select(['id', 'name'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $machines = MachineModel::query()
+            ->select(['id', 'name', 'code', 'location_id'])
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('tickets/edit', [
+            'ticket' => [
+                'id' => $ticket->id,
+                'code' => $ticket->code,
+                'category' => $ticket->category,
+                'priority' => $ticket->priority,
+                'division_id' => (string) $ticket->division_id,
+                'machine_id' => (string) ($ticket->machine_id ?? ''),
+                'description' => $ticket->description,
+                'image' => $ticket->damage_photo_url
+                    ? '/storage/'.ltrim($ticket->damage_photo_url, '/')
+                    : null,
+                'deadline' => $ticket->deadline?->format('Y-m-d') ?? '',
+                'pic_technician_id' => (string) (
+                    $ticket->technicians->firstWhere('role', 'pic')?->employee_id ?? ''
+                ),
+                'additional_technician_ids' => $ticket->technicians
+                    ->where('role', 'member')
+                    ->pluck('employee_id')
+                    ->values(),
+            ],
+            'divisions' => $divisions,
+            'machines' => $machines,
+            'technicians' => $this->maintenanceTechnicians(),
+        ]);
+    }
+
+    public function update(Request $request, TicketModel $ticket)
+    {
+        $validated = $request->validate([
+            'category' => [
+                'required',
+                Rule::in([
+                    'machine',
+                    'electrical',
+                    'maintenance',
+                    'preventive_maintenance',
+                    'other',
+                ]),
+            ],
+
+            'priority' => [
+                'required',
+                Rule::in([
+                    'standard',
+                    'urgent',
+                ]),
+            ],
+
+            'division_id' => [
+                'required',
+                'integer',
+                Rule::exists(BuildingModel::class, 'id'),
+            ],
+
+            'machine_id' => [
+                Rule::requiredIf($request->category === 'machine'),
+                'nullable',
+                'integer',
+                Rule::exists(MachineModel::class, 'id'),
+            ],
+
+            'description' => [
+                'required',
+                'string',
+                'max:5000',
+            ],
+
+            'damage_photo' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
+
+            'pic_technician_id' => [
+                'nullable',
+                Rule::requiredIf(
+                    fn () => is_array($request->input('additional_technician_ids'))
+                        && $request->input('additional_technician_ids') !== []
+                ),
+                'integer',
+                Rule::exists(User::class, 'id'),
+            ],
+
+            'additional_technician_ids' => [
+                'nullable',
+                'array',
+            ],
+
+            'additional_technician_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists(User::class, 'id'),
+            ],
+
+            'deadline' => [
+                Rule::requiredIf(
+                    fn () => $request->filled('pic_technician_id')
+                        || (
+                            is_array($request->input('additional_technician_ids'))
+                            && $request->input('additional_technician_ids') !== []
+                        )
+                ),
+                'nullable',
+                'date',
+            ],
+        ]);
+
+        $previousPhotoPath = $ticket->damage_photo_url;
+        $photoPath = $previousPhotoPath;
+
+        if ($request->hasFile('damage_photo')) {
+            $photoPath = $request->file('damage_photo')->store(
+                'maintenance/tickets',
+                'public'
+            );
+
+            if (! $photoPath) {
+                throw new \RuntimeException('Foto tiket gagal disimpan.');
+            }
+        }
+
+        $picTechnicianId = isset($validated['pic_technician_id'])
+            ? (int) $validated['pic_technician_id']
+            : null;
+
+        $technicianAssignments = [];
+
+        if ($picTechnicianId !== null) {
+            $technicianAssignments[$picTechnicianId] = 'pic';
+        }
+
+        foreach ($validated['additional_technician_ids'] ?? [] as $technicianId) {
+            $technicianId = (int) $technicianId;
+
+            if ($technicianId !== $picTechnicianId) {
+                $technicianAssignments[$technicianId] = 'member';
+            }
+        }
+
+        $techniciansChanged = DB::transaction(function () use (
+            $ticket,
+            $validated,
+            $photoPath,
+            $technicianAssignments
+        ): bool {
+            $ticket->update([
+                'category' => $validated['category'],
+                'priority' => $validated['priority'],
+                'division_id' => $validated['division_id'],
+                'machine_id' => $validated['category'] === 'machine'
+                    ? $validated['machine_id']
+                    : null,
+                'description' => $validated['description'],
+                'damage_photo_url' => $photoPath,
+                'deadline' => $validated['deadline'] ?? null,
+            ]);
+
+            return $this->syncTicketTechnicians(
+                $ticket,
+                $technicianAssignments
+            );
+        });
+
+        if ($techniciansChanged && $technicianAssignments !== []) {
+            event(new TicketAssigned(
+                $ticket,
+                array_map('intval', array_keys($technicianAssignments))
+            ));
+        }
+
+        if ($photoPath !== $previousPhotoPath && $previousPhotoPath) {
+            Storage::disk('public')->delete($previousPhotoPath);
+        }
+
+        return redirect()
+            ->route('tickets.show', $ticket->id)
+            ->with('success', 'Tiket berhasil diperbarui.');
     }
 
     /*
@@ -483,10 +680,22 @@ class TicketController extends Controller
             $validated['pic_technician_id'],
             ...($validated['additional_technician_ids'] ?? []),
         ])
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()
             ->all();
+
+        $technicianAssignments = [
+            (int) $validated['pic_technician_id'] => 'pic',
+        ];
+
+        foreach ($validated['additional_technician_ids'] ?? [] as $technicianId) {
+            $technicianId = (int) $technicianId;
+
+            if ($technicianId !== (int) $validated['pic_technician_id']) {
+                $technicianAssignments[$technicianId] = 'member';
+            }
+        }
 
         $approverId =
             $this->currentEmployeeId();
@@ -496,7 +705,8 @@ class TicketController extends Controller
                 $ticket,
                 $validated,
                 $approverId,
-                $technicianIds
+                $technicianIds,
+                $technicianAssignments
             ) {
 
                 /*
@@ -536,49 +746,10 @@ class TicketController extends Controller
                     'rejection_reason' => null,
                 ]);
 
-                /*
-                 * PIC.
-                 */
-
-                TicketTechnicianModel::create([
-                    'ticket_id' => $ticket->id,
-
-                    'employee_id' => $validated['pic_technician_id'],
-
-                    'role' => 'pic',
-
-                    'assigned_at' => now(),
-
-                    'created_at' => now(),
-                ]);
-
-                /*
-                 * Additional technicians.
-                 */
-
-                foreach (
-                    $validated['additional_technician_ids'] ?? [] as $technicianId
-                ) {
-
-                    if (
-                        (int) $technicianId ===
-                        (int) $validated['pic_technician_id']
-                    ) {
-                        continue;
-                    }
-
-                    TicketTechnicianModel::create([
-                        'ticket_id' => $ticket->id,
-
-                        'employee_id' => $technicianId,
-
-                        'role' => 'member',
-
-                        'assigned_at' => now(),
-
-                        'created_at' => now(),
-                    ]);
-                }
+                $this->syncTicketTechnicians(
+                    $ticket,
+                    $technicianAssignments
+                );
 
                 $this->createLog(
                     ticket: $ticket,
@@ -714,7 +885,7 @@ class TicketController extends Controller
 
             'technicians.employee:id,first_name,last_name',
 
-            'logs' => fn($query) => $query->orderBy(
+            'logs' => fn ($query) => $query->orderBy(
                 'created_at'
             ),
 
@@ -731,15 +902,15 @@ class TicketController extends Controller
 
         $spareparts =
             SparepartModel::query()
-            ->select([
-                'id',
-                'code',
-                'name',
-                'stock',
-                'unit',
-            ])
-            ->orderBy('name')
-            ->get();
+                ->select([
+                    'id',
+                    'code',
+                    'name',
+                    'stock',
+                    'unit',
+                ])
+                ->orderBy('name')
+                ->get();
 
         return Inertia::render(
             'tickets/show',
@@ -751,6 +922,12 @@ class TicketController extends Controller
                 'spareparts' => $spareparts,
 
                 'can' => [
+                    'edit' => $this->currentEmployeeHasRole(
+                        'maintenance_approver'
+                    ) || $this->currentEmployeeHasRole(
+                        'maintenance_admin'
+                    ),
+
                     'update_progress' => $this->canUpdateTicket(
                         $ticket
                     ),
@@ -887,11 +1064,11 @@ class TicketController extends Controller
 
                     $path =
                         $request
-                        ->file('evidence')
-                        ->store(
-                            'maintenance/tickets/progress',
-                            'public'
-                        );
+                            ->file('evidence')
+                            ->store(
+                                'maintenance/tickets/progress',
+                                'public'
+                            );
 
                     TicketDocumentationModel::create([
                         'ticket_id' => $ticket->id,
@@ -928,7 +1105,7 @@ class TicketController extends Controller
                         'created_at' => now(),
                     ]);
 
-                    $note = "Pengurangan stok dari tiket " . $ticket->code;
+                    $note = 'Pengurangan stok dari tiket '.$ticket->code;
                     UpdateSparepartLogService::reduce($item['id'], $item['quantity'], $note);
                 }
 
@@ -945,8 +1122,6 @@ class TicketController extends Controller
                 }
             }
         );
-
-
 
         return back()->with(
             'success',
@@ -1169,6 +1344,66 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * @param  array<int, 'pic'|'member'>  $technicianAssignments
+     */
+    private function syncTicketTechnicians(
+        TicketModel $ticket,
+        array $technicianAssignments
+    ): bool {
+        $existingTechnicians = $ticket->technicians()
+            ->get()
+            ->keyBy('employee_id');
+
+        $existingAssignments = $existingTechnicians
+            ->mapWithKeys(
+                fn (TicketTechnicianModel $technician): array => [
+                    (int) $technician->employee_id => $technician->role,
+                ]
+            )
+            ->all();
+
+        $desiredAssignments = [];
+
+        foreach ($technicianAssignments as $employeeId => $role) {
+            $desiredAssignments[(int) $employeeId] = $role;
+        }
+
+        ksort($existingAssignments);
+        ksort($desiredAssignments);
+
+        if ($existingAssignments === $desiredAssignments) {
+            return false;
+        }
+
+        if ($desiredAssignments === []) {
+            $ticket->technicians()->delete();
+        } else {
+            $ticket->technicians()
+                ->whereNotIn('employee_id', array_keys($desiredAssignments))
+                ->delete();
+        }
+
+        foreach ($desiredAssignments as $employeeId => $role) {
+            $existingTechnician = $existingTechnicians->get($employeeId);
+
+            if ($existingTechnician) {
+                $existingTechnician->update(['role' => $role]);
+
+                continue;
+            }
+
+            $ticket->technicians()->create([
+                'employee_id' => $employeeId,
+                'role' => $role,
+                'assigned_at' => now(),
+                'created_at' => now(),
+            ]);
+        }
+
+        return true;
+    }
+
     private function progressAction(
         string $oldStatus,
         string $newStatus
@@ -1226,14 +1461,14 @@ class TicketController extends Controller
 
         $employee =
             User::query()
-            ->select([
-                'id',
-                'id_karyawan',
-                'first_name',
-                'last_name',
-                'username',
-            ])
-            ->find($employeeId);
+                ->select([
+                    'id',
+                    'id_karyawan',
+                    'first_name',
+                    'last_name',
+                    'username',
+                ])
+                ->find($employeeId);
 
         if (! $employee) {
             return null;
@@ -1246,8 +1481,8 @@ class TicketController extends Controller
 
             'name' => trim(
                 $employee->first_name
-                    . ' '
-                    . $employee->last_name
+                    .' '
+                    .$employee->last_name
             ),
         ];
     }
@@ -1333,13 +1568,13 @@ class TicketController extends Controller
             ->get()
 
             ->map(
-                fn($employee) => [
+                fn ($employee) => [
                     'id' => $employee->id,
 
                     'name' => trim(
                         $employee->first_name
-                            . ' '
-                            . $employee->last_name
+                            .' '
+                            .$employee->last_name
                     ),
                 ]
             );
@@ -1392,13 +1627,13 @@ class TicketController extends Controller
 
         $lastTicket =
             TicketModel::query()
-            ->where(
-                'code',
-                'like',
-                "{$prefix}%"
-            )
-            ->orderByDesc('id')
-            ->first();
+                ->where(
+                    'code',
+                    'like',
+                    "{$prefix}%"
+                )
+                ->orderByDesc('id')
+                ->first();
 
         $lastSequence = 0;
 
@@ -1411,7 +1646,7 @@ class TicketController extends Controller
         }
 
         return $prefix
-            . str_pad(
+            .str_pad(
                 $lastSequence + 1,
                 4,
                 '0',
@@ -1425,11 +1660,11 @@ class TicketController extends Controller
 
         $pic =
             $ticket
-            ->technicians
-            ->firstWhere(
-                'role',
-                'pic'
-            );
+                ->technicians
+                ->firstWhere(
+                    'role',
+                    'pic'
+                );
 
         return [
             'id' => $ticket->id,
@@ -1462,16 +1697,13 @@ class TicketController extends Controller
                     $pic->employee
                 ) : null,
 
-
-            'technician_ids' =>
-            $ticket
+            'technician_ids' => $ticket
                 ->technicians
                 ->pluck(
                     'employee_id'
                 )
                 ->map(
-                    fn($id) =>
-                    (int) $id
+                    fn ($id) => (int) $id
                 )
                 ->values(),
 
@@ -1495,89 +1727,89 @@ class TicketController extends Controller
 
         $pic =
             $ticket
-            ->technicians
-            ->firstWhere(
-                'role',
-                'pic'
-            );
+                ->technicians
+                ->firstWhere(
+                    'role',
+                    'pic'
+                );
 
         $members =
             $ticket
-            ->technicians
-            ->where(
-                'role',
-                'member'
-            )
-            ->map(
-                fn($item) => $this->employeeName(
-                    $item->employee
+                ->technicians
+                ->where(
+                    'role',
+                    'member'
                 )
-            )
-            ->values();
+                ->map(
+                    fn ($item) => $this->employeeName(
+                        $item->employee
+                    )
+                )
+                ->values();
 
         $technicians =
             $ticket
-            ->technicians
-            ->map(
-                fn($technician) => [
-                    'id' => $technician->id,
+                ->technicians
+                ->map(
+                    fn ($technician) => [
+                        'id' => $technician->id,
 
-                    'name' => $this->employeeName(
-                        $technician->employee
-                    ),
+                        'name' => $this->employeeName(
+                            $technician->employee
+                        ),
 
-                    'is_pic' => $technician->role === 'pic',
-                ]
-            )
-            ->values();
+                        'is_pic' => $technician->role === 'pic',
+                    ]
+                )
+                ->values();
 
         $histories = $ticket->relationLoaded(
             'logs'
         )
             ? $ticket
-            ->logs
-            ->map(
-                fn($log) => [
-                    'id' => $log->id,
+                ->logs
+                ->map(
+                    fn ($log) => [
+                        'id' => $log->id,
 
-                    'action' => $log->action,
+                        'action' => $log->action,
 
-                    'action_label' => $log->toStatus?->name ??
-                        $log->action,
+                        'action_label' => $log->toStatus?->name ??
+                            $log->action,
 
-                    'description' => $log->description,
+                        'description' => $log->description,
 
-                    'actor' => $this->employeeName(
-                        $log->createdBy
-                    ),
+                        'actor' => $this->employeeName(
+                            $log->createdBy
+                        ),
 
-                    'created_at' => optional(
-                        $log->created_at
-                    )->format(
-                        'd-m-Y H:i'
-                    ),
-                ]
-            )
+                        'created_at' => optional(
+                            $log->created_at
+                        )->format(
+                            'd-m-Y H:i'
+                        ),
+                    ]
+                )
             : collect();
 
         $documentations = $ticket->relationLoaded(
             'documentations'
         )
             ? $ticket
-            ->documentations
-            ->map(
-                fn($documentation) => [
-                    'id' => $documentation->id,
+                ->documentations
+                ->map(
+                    fn ($documentation) => [
+                        'id' => $documentation->id,
 
-                    'image' => '/storage/' . ltrim($documentation->image_url, '/'),
+                        'image' => '/storage/'.ltrim($documentation->image_url, '/'),
 
-                    'created_at' => optional(
-                        $documentation->created_at
-                    )->format(
-                        'd-m-Y H:i'
-                    ),
-                ]
-            )
+                        'created_at' => optional(
+                            $documentation->created_at
+                        )->format(
+                            'd-m-Y H:i'
+                        ),
+                    ]
+                )
             : collect();
 
         return [
@@ -1643,7 +1875,7 @@ class TicketController extends Controller
             'machine_name' => $ticket->machine?->name,
 
             'image' => $ticket->damage_photo_url
-                ? '/storage/' . ltrim($ticket->damage_photo_url, '/')
+                ? '/storage/'.ltrim($ticket->damage_photo_url, '/')
                 : null,
 
             'created_at' => optional(
@@ -1678,34 +1910,34 @@ class TicketController extends Controller
                 'logs'
             )
                 ? $ticket
-                ->logs
-                ->map(
-                    fn($log) => [
-                        'id' => $log->id,
+                    ->logs
+                    ->map(
+                        fn ($log) => [
+                            'id' => $log->id,
 
-                        'action' => $log->action,
+                            'action' => $log->action,
 
-                        'from_status' => $log->fromStatus?->code,
+                            'from_status' => $log->fromStatus?->code,
 
-                        'status' => $log->toStatus?->code,
+                            'status' => $log->toStatus?->code,
 
-                        'status_label' => $this->statusLabel(
-                            $log->toStatus?->code
-                        ),
+                            'status_label' => $this->statusLabel(
+                                $log->toStatus?->code
+                            ),
 
-                        'description' => $log->description,
+                            'description' => $log->description,
 
-                        'created_at' => optional(
-                            $log->created_at
-                        )->format(
-                            'd-m-Y H:i'
-                        ),
+                            'created_at' => optional(
+                                $log->created_at
+                            )->format(
+                                'd-m-Y H:i'
+                            ),
 
-                        'created_by' => $this->employeeName(
-                            $log->createdBy
-                        ),
-                    ]
-                )
+                            'created_by' => $this->employeeName(
+                                $log->createdBy
+                            ),
+                        ]
+                    )
                 : [],
         ];
     }
@@ -1720,8 +1952,8 @@ class TicketController extends Controller
 
         return trim(
             $employee->first_name
-                . ' '
-                . $employee->last_name
+                .' '
+                .$employee->last_name
         );
     }
 

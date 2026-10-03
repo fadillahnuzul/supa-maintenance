@@ -9,6 +9,7 @@ import {
     CheckCircle2,
     Clock,
     Cog,
+    Edit,
     FileText,
     History,
     ImageIcon,
@@ -30,6 +31,7 @@ import {
     useEffect,
 } from 'react';
 import type { FormEvent } from 'react';
+import { edit as editTicket } from '@/actions/App/Http/Controllers/TicketController';
 
 /*
 |--------------------------------------------------------------------------
@@ -137,6 +139,7 @@ type Props = {
     spareparts: Sparepart[];
 
     can: {
+        edit: boolean;
         update_progress: boolean;
         verify: boolean;
     };
@@ -985,6 +988,21 @@ export default function TicketShow({
                             >
                                 Kembali
                             </button>
+
+                            {can.edit && (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        router.visit(
+                                            editTicket.url(ticket.id),
+                                        )
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                                >
+                                    <Edit size={17} />
+                                    Edit Tiket
+                                </button>
+                            )}
 
                             {/* UPDATE PROGRESS */}
 

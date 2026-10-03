@@ -6,17 +6,14 @@ namespace App\Models;
 
 use App\Models\Notifications\DatabaseNotification;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Override;
 
 /**
  * @property int $id
@@ -32,7 +29,6 @@ use Override;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -40,6 +36,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $table = 'core.employees';
+
     protected $fillable = [
         'id_karyawan',
         'first_name',
@@ -60,7 +57,7 @@ class User extends Authenticatable
         'profile_photo_path',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
     ];
 
     /**
@@ -89,7 +86,7 @@ class User extends Authenticatable
         return app()->environment('testing') ? 'users' : 'core.employees';
     }
 
-    public function notifications() : MorphMany
+    public function notifications(): MorphMany
     {
         return $this->morphMany(
             DatabaseNotification::class,
@@ -118,10 +115,32 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * @param  array<int, string>  $roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        if ($roles === []) {
+            return false;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(
+                fn (RoleModel $role): bool => $role->is_active
+                    && in_array($role->code, $roles, true)
+            );
+        }
+
+        return $this->roles()
+            ->whereIn('code', $roles)
+            ->where('is_active', true)
+            ->exists();
+    }
+
     protected function name(): Attribute
     {
         return Attribute::make(
-            get: fn() => trim("{$this->first_name} {$this->last_name}"),
+            get: fn () => trim("{$this->first_name} {$this->last_name}"),
         );
     }
 }
