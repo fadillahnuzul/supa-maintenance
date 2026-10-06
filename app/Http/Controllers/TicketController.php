@@ -949,6 +949,37 @@ class TicketController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * @param  array<int, array{id: int|string, quantity: int|float|string}>  $spareparts
+     */
+    private function recordUsedSpareparts(
+        TicketModel $ticket,
+        TicketLogModel $log,
+        array $spareparts,
+        int $employeeId,
+    ): void {
+        foreach ($spareparts as $item) {
+            $sparepartId = (int) $item['id'];
+            $quantity = (float) $item['quantity'];
+
+            TicketSparepartModel::create([
+                'ticket_id' => $ticket->id,
+                'ticket_log_id' => $log->id,
+                'sparepart_id' => $sparepartId,
+                'quantity' => $quantity,
+                'created_by' => $employeeId,
+                'created_at' => now(),
+            ]);
+
+            UpdateSparepartLogService::reduce(
+                $sparepartId,
+                $quantity,
+                'Pengurangan stok dari tiket '.$ticket->code,
+                $employeeId,
+            );
+        }
+    }
+
     public function updateProgress(
         Request $request,
         TicketModel $ticket
@@ -1087,27 +1118,12 @@ class TicketController extends Controller
                  * Sparepart aktual yang digunakan.
                  */
 
-                foreach (
-                    $validated['spareparts_used'] ?? [] as $item
-                ) {
-
-                    TicketSparepartModel::create([
-                        'ticket_id' => $ticket->id,
-
-                        'ticket_log_id' => $log->id,
-
-                        'sparepart_id' => $item['id'],
-
-                        'quantity' => $item['quantity'],
-
-                        'created_by' => $employeeId,
-
-                        'created_at' => now(),
-                    ]);
-
-                    $note = 'Pengurangan stok dari tiket '.$ticket->code;
-                    UpdateSparepartLogService::reduce($item['id'], $item['quantity'], $note);
-                }
+                $this->recordUsedSpareparts(
+                    $ticket,
+                    $log,
+                    $validated['spareparts_used'] ?? [],
+                    $employeeId,
+                );
 
                 if ($newStatus === 'waiting_verification') {
                     DB::afterCommit(

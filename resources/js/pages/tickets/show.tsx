@@ -251,6 +251,17 @@ export default function TicketShow({
         spareparts_used: [],
     });
 
+    const selectedSparepart = spareparts.find(
+        (item) => item.id === Number(selectedSparepartId),
+    );
+    const selectedSparepartQuantity =
+        progressForm.data.spareparts_used.find(
+            (item) => item.id === selectedSparepart?.id,
+        )?.quantity ?? 0;
+    const remainingSparepartStock = selectedSparepart
+        ? Math.max(0, selectedSparepart.stock - selectedSparepartQuantity)
+        : undefined;
+
     /*
     |--------------------------------------------------------------------------
     | VERIFY FORM
@@ -298,6 +309,7 @@ export default function TicketShow({
         setSelectedSparepartId('');
         setSparepartQuantity('');
         setSparepartError(null);
+        progressForm.clearErrors('spareparts_used');
 
         /*
          * Assigned pertama kali
@@ -355,24 +367,15 @@ export default function TicketShow({
             return;
         }
 
-        if (quantity > sparepart.stock) {
-            setSparepartError(
-                `Jumlah melebihi stok tersedia (${sparepart.stock} ${sparepart.unit}).`,
-            );
-
-            return;
-        }
-
         const existingItem = progressForm.data.spareparts_used.find(
             (item) => item.id === sparepartId,
         );
 
-        if (
-            existingItem &&
-            existingItem.quantity + quantity > sparepart.stock
-        ) {
+        const remainingStock = sparepart.stock - (existingItem?.quantity ?? 0);
+
+        if (quantity > remainingStock) {
             setSparepartError(
-                `Total jumlah melebihi stok tersedia (${sparepart.stock} ${sparepart.unit}).`,
+                `Jumlah melebihi sisa stok (${remainingStock} ${sparepart.unit}).`,
             );
 
             return;
@@ -418,6 +421,7 @@ export default function TicketShow({
         );
 
         setSparepartError(null);
+        progressForm.clearErrors('spareparts_used');
     };
 
     const handleEvidenceChange = (
@@ -1379,6 +1383,9 @@ export default function TicketShow({
                                                 event.target.value,
                                             );
                                             setSparepartError(null);
+                                            progressForm.clearErrors(
+                                                'spareparts_used',
+                                            );
                                         }}
                                         className="h-11 min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-green-600"
                                     >
@@ -1390,9 +1397,24 @@ export default function TicketShow({
                                             <option
                                                 key={sparepart.id}
                                                 value={sparepart.id}
-                                                disabled={sparepart.stock <= 0}
+                                                disabled={
+                                                    sparepart.stock -
+                                                        (progressForm.data.spareparts_used.find(
+                                                            (item) =>
+                                                                item.id ===
+                                                                sparepart.id,
+                                                        )?.quantity ?? 0) <=
+                                                    0
+                                                }
                                             >
-                                                {sparepart.name} ({Number(sparepart.stock).toFixed(1)}{' '}
+                                                {sparepart.name} ({Number(
+                                                    sparepart.stock -
+                                                        (progressForm.data.spareparts_used.find(
+                                                            (item) =>
+                                                                item.id ===
+                                                                sparepart.id,
+                                                        )?.quantity ?? 0),
+                                                ).toFixed(1)}{' '}
                                                 {sparepart.unit})
                                             </option>
                                         ))}
@@ -1401,15 +1423,25 @@ export default function TicketShow({
                                     <input
                                         type="number"
                                         min="0.0"
-                                        step="0.5"
+                                        step="any"
+                                        max={remainingSparepartStock}
+                                        disabled={!selectedSparepart}
                                         value={sparepartQuantity}
                                         onChange={(event) => {
                                             setSparepartQuantity(
                                                 event.target.value,
                                             );
                                             setSparepartError(null);
+                                            progressForm.clearErrors(
+                                                'spareparts_used',
+                                            );
                                         }}
-                                        placeholder="Jumlah..."
+                                        placeholder={
+                                            remainingSparepartStock ===
+                                            undefined
+                                                ? 'Pilih sparepart'
+                                                : `Maks. ${remainingSparepartStock}`
+                                        }
                                         className="h-11 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-green-600 sm:w-28 text-gray-600"
                                     />
 
@@ -1418,14 +1450,15 @@ export default function TicketShow({
                                         onClick={addSparepart}
                                         className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-4 text-sm font-bold text-white transition hover:bg-blue-600"
                                     >
-                                        <Plus size={16} />
-                                        Tambah
+                                        Gunakan
                                     </button>
                                 </div>
 
-                                {sparepartError && (
+                                {(sparepartError ||
+                                    progressForm.errors.spareparts_used) && (
                                     <p className="mt-1 text-xs text-red-600">
-                                        {sparepartError}
+                                        {sparepartError ||
+                                            progressForm.errors.spareparts_used}
                                     </p>
                                 )}
 
