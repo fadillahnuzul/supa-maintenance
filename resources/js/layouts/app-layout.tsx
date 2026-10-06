@@ -1,13 +1,14 @@
-import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { router, usePage } from '@inertiajs/react';
 import {
     Bell,
     CheckCheck,
     ClipboardCheck,
+    Menu,
     UserCheck,
     Wrench,
 } from 'lucide-react';
-import { router, usePage } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import Sidebar from '@/components/sidebar';
 
@@ -44,15 +45,12 @@ type PageProps = {
     notifications: Notifications;
 };
 
-export default function AppLayout({
-    children,
-}: AppLayoutProps) {
+export default function AppLayout({ children }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false);
-    const [notificationOpen, setNotificationOpen] =
-        useState(false);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [notificationOpen, setNotificationOpen] = useState(false);
 
-    const notificationRef =
-        useRef<HTMLDivElement>(null);
+    const notificationRef = useRef<HTMLDivElement>(null);
 
     const {
         auth,
@@ -66,79 +64,45 @@ export default function AppLayout({
      * Tutup dropdown ketika klik di luar.
      */
     useEffect(() => {
-        const handleClickOutside = (
-            event: MouseEvent
-        ) => {
+        const handleClickOutside = (event: MouseEvent) => {
             if (
                 notificationRef.current &&
-                !notificationRef.current.contains(
-                    event.target as Node
-                )
+                !notificationRef.current.contains(event.target as Node)
             ) {
                 setNotificationOpen(false);
             }
         };
 
-        document.addEventListener(
-            'mousedown',
-            handleClickOutside
-        );
+        document.addEventListener('mousedown', handleClickOutside);
 
         return () => {
-            document.removeEventListener(
-                'mousedown',
-                handleClickOutside
-            );
+            document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
 
     /*
      * Icon berdasarkan jenis notification.
      */
-    const getNotificationIcon = (
-        type: string | null
-    ) => {
+    const getNotificationIcon = (type: string | null) => {
         switch (type) {
             case 'ticket_created':
-                return (
-                    <Wrench
-                        size={19}
-                        className="text-orange-500"
-                    />
-                );
+                return <Wrench size={19} className="text-orange-500" />;
 
             case 'ticket_assigned':
-                return (
-                    <UserCheck
-                        size={19}
-                        className="text-blue-500"
-                    />
-                );
+                return <UserCheck size={19} className="text-blue-500" />;
 
             case 'waiting_verification':
-                return (
-                    <ClipboardCheck
-                        size={19}
-                        className="text-green-600"
-                    />
-                );
+                return <ClipboardCheck size={19} className="text-green-600" />;
 
             default:
-                return (
-                    <Bell
-                        size={19}
-                        className="text-gray-500"
-                    />
-                );
+                return <Bell size={19} className="text-gray-500" />;
         }
     };
 
     /*
      * Klik notification.
      */
-    const handleNotificationClick = (
-        notification: NotificationItem
-    ) => {
+    const handleNotificationClick = (notification: NotificationItem) => {
         setNotificationOpen(false);
 
         /*
@@ -164,12 +128,10 @@ export default function AppLayout({
 
                 onSuccess: () => {
                     if (notification.url) {
-                        router.visit(
-                            notification.url
-                        );
+                        router.visit(notification.url);
                     }
                 },
-            }
+            },
         );
     };
 
@@ -183,89 +145,87 @@ export default function AppLayout({
             {
                 preserveScroll: true,
                 preserveState: true,
-            }
+            },
         );
     };
 
     /*
      * Format waktu sederhana.
      */
-    const formatNotificationTime = (
-        date: string | null
-    ) => {
+    const formatNotificationTime = (date: string | null) => {
         if (!date) {
             return '';
         }
 
-        return new Intl.DateTimeFormat(
-            'id-ID',
-            {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-            }
-        ).format(new Date(date));
+        return new Intl.DateTimeFormat('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(new Date(date));
     };
 
     return (
-        <div className="min-h-screen bg-[#f7f8fa]">
+        <div className="min-h-dvh bg-[#f7f8fa]">
+            {mobileNavOpen && (
+                <button
+                    type="button"
+                    aria-label="Tutup menu navigasi"
+                    onClick={() => setMobileNavOpen(false)}
+                    className="fixed inset-0 z-30 bg-black/45 lg:hidden"
+                />
+            )}
+
             <Sidebar
                 collapsed={collapsed}
                 setCollapsed={setCollapsed}
+                mobileOpen={mobileNavOpen}
+                setMobileOpen={setMobileNavOpen}
             />
 
             <div
-                className={`
-                    min-h-screen
-                    transition-all duration-300
-                    ${
-                        collapsed
-                            ? 'ml-[88px]'
-                            : 'ml-[265px]'
-                    }
-                `}
+                className={`min-h-dvh min-w-0 transition-all duration-300 ${
+                    collapsed ? 'ml-0 lg:ml-[88px]' : 'ml-0 lg:ml-[265px]'
+                } `}
             >
                 {/* Header */}
-                <header className="flex h-[80px] items-center justify-between border-b border-gray-400 px-8">
-                    <div>
-                        <h1 className="text-[28px] font-bold text-gray-800">
-                            Supa Maintenance
-                        </h1>
+                <header className="flex min-h-[68px] items-center justify-between gap-2 border-b border-gray-400 px-3 py-2 sm:px-5 lg:h-[80px] lg:px-8">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setMobileNavOpen(true)}
+                            aria-label="Buka menu navigasi"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-700 transition hover:bg-gray-100 lg:hidden"
+                        >
+                            <Menu size={22} />
+                        </button>
+                        <div className="min-w-0">
+                            <h1 className="truncate text-base font-bold text-gray-800 sm:text-xl lg:text-[28px]">
+                                Supa Maintenance
+                            </h1>
 
-                        <p className="text-[18px] text-gray-600">
-                            Manajemen Perbaikan, Mesin,
-                            dan Sparepart
-                        </p>
+                            <p className="hidden text-sm text-gray-600 lg:block lg:text-[18px]">
+                                Manajemen Perbaikan, Mesin, dan Sparepart
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-5">
-
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-5">
                         {/* NOTIFICATION */}
-                        <div
-                            ref={notificationRef}
-                            className="relative"
-                        >
+                        <div ref={notificationRef} className="relative">
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setNotificationOpen(
-                                        !notificationOpen
-                                    )
+                                    setNotificationOpen(!notificationOpen)
                                 }
-                                className="relative flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100"
+                                className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-gray-100 sm:h-11 sm:w-11"
                             >
-                                <Bell
-                                    size={30}
-                                    className="text-gray-600"
-                                />
+                                <Bell className="h-6 w-6 text-gray-600 lg:h-[30px] lg:w-[30px]" />
 
                                 {/* Badge */}
-                                {notifications.unread_count >
-                                    0 && (
-                                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                                        {notifications.unread_count >
-                                        99
+                                {notifications.unread_count > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                                        {notifications.unread_count > 99
                                             ? '99+'
                                             : notifications.unread_count}
                                     </span>
@@ -274,8 +234,7 @@ export default function AppLayout({
 
                             {/* DROPDOWN */}
                             {notificationOpen && (
-                                <div className="absolute right-0 top-[52px] z-[100] w-[390px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
-
+                                <div className="absolute top-[52px] right-0 z-[100] w-[min(390px,calc(100vw-1rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
                                     {/* Header */}
                                     <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                                         <div>
@@ -284,28 +243,18 @@ export default function AppLayout({
                                             </h3>
 
                                             <p className="mt-0.5 text-xs text-gray-500">
-                                                {
-                                                    notifications.unread_count
-                                                }{' '}
+                                                {notifications.unread_count}{' '}
                                                 belum dibaca
                                             </p>
                                         </div>
 
-                                        {notifications.unread_count >
-                                            0 && (
+                                        {notifications.unread_count > 0 && (
                                             <button
                                                 type="button"
-                                                onClick={
-                                                    markAllAsRead
-                                                }
+                                                onClick={markAllAsRead}
                                                 className="flex items-center gap-1.5 text-xs font-semibold text-[#32a936] transition hover:text-green-700"
                                             >
-                                                <CheckCheck
-                                                    size={
-                                                        16
-                                                    }
-                                                />
-
+                                                <CheckCheck size={16} />
                                                 Tandai semua
                                             </button>
                                         )}
@@ -313,35 +262,27 @@ export default function AppLayout({
 
                                     {/* Notification list */}
                                     <div className="max-h-[420px] overflow-y-auto">
-                                        {notifications.items
-                                            .length ===
-                                        0 ? (
+                                        {notifications.items.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center px-5 py-12">
                                                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                                                     <Bell
-                                                        size={
-                                                            24
-                                                        }
+                                                        size={24}
                                                         className="text-gray-400"
                                                     />
                                                 </div>
 
                                                 <p className="text-sm font-semibold text-gray-700">
-                                                    Belum ada
-                                                    notifikasi
+                                                    Belum ada notifikasi
                                                 </p>
 
                                                 <p className="mt-1 text-xs text-gray-400">
-                                                    Notifikasi
-                                                    terbaru akan
+                                                    Notifikasi terbaru akan
                                                     muncul di sini.
                                                 </p>
                                             </div>
                                         ) : (
                                             notifications.items.map(
-                                                (
-                                                    notification
-                                                ) => {
+                                                (notification) => {
                                                     const unread =
                                                         !notification.read_at;
 
@@ -353,7 +294,7 @@ export default function AppLayout({
                                                             type="button"
                                                             onClick={() =>
                                                                 handleNotificationClick(
-                                                                    notification
+                                                                    notification,
                                                                 )
                                                             }
                                                             className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition last:border-b-0 hover:bg-gray-50 ${
@@ -365,7 +306,7 @@ export default function AppLayout({
                                                             {/* Icon */}
                                                             <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
                                                                 {getNotificationIcon(
-                                                                    notification.type
+                                                                    notification.type,
                                                                 )}
                                                             </div>
 
@@ -402,14 +343,14 @@ export default function AppLayout({
 
                                                                     <span className="text-[11px] text-gray-400">
                                                                         {formatNotificationTime(
-                                                                            notification.created_at
+                                                                            notification.created_at,
                                                                         )}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                         </button>
                                                     );
-                                                }
+                                                },
                                             )
                                         )}
                                     </div>
@@ -419,14 +360,13 @@ export default function AppLayout({
 
                         {/* USER */}
                         {!collapsed && (
-                            <div className="text-right">
+                            <div className="hidden text-right lg:block">
                                 <div className="font-bold text-gray-800">
                                     {auth.user?.name}
                                 </div>
 
                                 <div className="mt-1 rounded-full bg-[#32a936] px-4 py-1 text-sm text-white">
-                                    {auth.roles[0] ??
-                                        'Pengguna'}
+                                    {auth.roles[0] ?? 'Pengguna'}
                                 </div>
                             </div>
                         )}
@@ -436,15 +376,13 @@ export default function AppLayout({
                                 auth.user?.avatar ||
                                 '/images/default-avatar.jpg'
                             }
-                            className="h-14 w-14 rounded-full object-cover"
+                            className="h-9 w-9 rounded-full object-cover sm:h-11 sm:w-11 lg:h-14 lg:w-14"
                             alt="User"
                         />
                     </div>
                 </header>
 
-                <main className="p-4">
-                    {children}
-                </main>
+                <main className="min-w-0 p-3 sm:p-4 lg:p-6">{children}</main>
             </div>
         </div>
     );
