@@ -11,12 +11,13 @@ import {
     X,
 } from 'lucide-react';
 import {
-    FormEvent,
     useEffect,
     useMemo,
     useRef,
     useState,
 } from 'react';
+import type { FormEvent } from 'react';
+import { compressImage } from '@/lib/compress-image';
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +127,10 @@ export default function CreateTicket({
 
     const fileInputRef =
         useRef<HTMLInputElement>(null);
+    const [isCompressingPhoto, setIsCompressingPhoto] =
+        useState(false);
+    const [photoError, setPhotoError] =
+        useState<string | null>(null);
 
     /*
     |--------------------------------------------------------------------------
@@ -269,13 +274,32 @@ export default function CreateTicket({
     |--------------------------------------------------------------------------
     */
 
-    const handleFileChange = (
+    const handleFileChange = async (
         file: File | null,
-    ) => {
-        setData(
-            'damage_photo',
-            file,
-        );
+    ): Promise<void> => {
+        setPhotoError(null);
+
+        if (!file) {
+            setData('damage_photo', null);
+
+            return;
+        }
+
+        setData('damage_photo', null);
+
+        setIsCompressingPhoto(true);
+
+        try {
+            setData('damage_photo', await compressImage(file));
+        } catch (error) {
+            setPhotoError(
+                error instanceof Error
+                    ? error.message
+                    : 'Foto tidak dapat diproses. Silakan coba gambar lain.',
+            );
+        } finally {
+            setIsCompressingPhoto(false);
+        }
     };
 
     /*
@@ -288,6 +312,10 @@ export default function CreateTicket({
         event: FormEvent,
     ) => {
         event.preventDefault();
+
+        if (isCompressingPhoto) {
+            return;
+        }
 
         /*
          * Endpoint:
@@ -659,17 +687,13 @@ export default function CreateTicket({
                                     fileInputRef
                                 }
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={(
-                                    event,
-                                ) =>
-                                    handleFileChange(
-                                        event
-                                            .target
-                                            .files?.[0] ??
-                                            null,
-                                    )
-                                }
+                                accept="image/*"
+                                capture="environment"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    event.target.value = '';
+                                    void handleFileChange(file);
+                                }}
                                 className="hidden"
                             />
 
@@ -679,6 +703,7 @@ export default function CreateTicket({
                                     onClick={() =>
                                         fileInputRef.current?.click()
                                     }
+                                    disabled={isCompressingPhoto}
                                     className="flex min-h-[180px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-green-500"
                                 >
                                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-200 text-gray-600">
@@ -689,8 +714,9 @@ export default function CreateTicket({
 
                                     <div className="text-center">
                                         <div className="text-sm font-semibold text-gray-700">
-                                            Upload
-                                            Foto
+                                            {isCompressingPhoto
+                                                ? 'Memproses foto...'
+                                                : 'Ambil atau pilih foto'}
                                         </div>
 
                                         <div className="mt-1 text-xs text-gray-400">
@@ -742,6 +768,11 @@ export default function CreateTicket({
                                     }
                                 </p>
                             )}
+                            {photoError && (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {photoError}
+                                </p>
+                            )}
                         </div>
 
                         {/* ====================================================
@@ -753,7 +784,7 @@ export default function CreateTicket({
                                 type="button"
                                 onClick={cancel}
                                 disabled={
-                                    processing
+                                    processing || isCompressingPhoto
                                 }
                                 className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
                             >
@@ -763,7 +794,7 @@ export default function CreateTicket({
                             <button
                                 type="submit"
                                 disabled={
-                                    processing
+                                    processing || isCompressingPhoto
                                 }
                                 className="rounded-xl bg-[#35b34a] px-8 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2e9d41] disabled:opacity-50"
                             >

@@ -32,6 +32,7 @@ import {
 } from 'react';
 import type { FormEvent } from 'react';
 import { edit as editTicket } from '@/actions/App/Http/Controllers/TicketController';
+import { compressImage } from '@/lib/compress-image';
 
 /*
 |--------------------------------------------------------------------------
@@ -222,6 +223,10 @@ export default function TicketShow({
         useRef<HTMLInputElement>(null);
 
     const [evidencePreview, setEvidencePreview] =
+        useState<string | null>(null);
+    const [isCompressingEvidence, setIsCompressingEvidence] =
+        useState(false);
+    const [evidenceError, setEvidenceError] =
         useState<string | null>(null);
 
     /*
@@ -424,21 +429,39 @@ export default function TicketShow({
         progressForm.clearErrors('spareparts_used');
     };
 
-    const handleEvidenceChange = (
+    const handleEvidenceChange = async (
         file: File | null,
-    ) => {
+    ): Promise<void> => {
+        setEvidenceError(null);
+
         if (evidencePreview) {
             URL.revokeObjectURL(evidencePreview);
         }
 
-        progressForm.setData(
-            'evidence',
-            file,
-        );
+        if (!file) {
+            progressForm.setData('evidence', null);
+            setEvidencePreview(null);
 
-        setEvidencePreview(
-            file ? URL.createObjectURL(file) : null,
-        );
+            return;
+        }
+
+        setIsCompressingEvidence(true);
+
+        try {
+            const compressedFile = await compressImage(file);
+            progressForm.setData('evidence', compressedFile);
+            setEvidencePreview(URL.createObjectURL(compressedFile));
+        } catch (error) {
+            progressForm.setData('evidence', null);
+            setEvidencePreview(null);
+            setEvidenceError(
+                error instanceof Error
+                    ? error.message
+                    : 'Foto tidak dapat diproses. Silakan coba gambar lain.',
+            );
+        } finally {
+            setIsCompressingEvidence(false);
+        }
     };
 
     useEffect(() => {
@@ -459,6 +482,10 @@ export default function TicketShow({
         event: FormEvent,
     ) => {
         event.preventDefault();
+
+        if (isCompressingEvidence) {
+            return;
+        }
 
         /*
          * Sesuai route Laravel:
@@ -1562,13 +1589,14 @@ export default function TicketShow({
                                 <input
                                     ref={evidenceInputRef}
                                     type="file"
-                                    accept="image/jpeg,image/png,image/webp"
+                                    accept="image/*"
+                                    capture="environment"
                                     className="hidden"
-                                    onChange={(event) =>
-                                        handleEvidenceChange(
-                                            event.target.files?.[0] ?? null,
-                                        )
-                                    }
+                                    onChange={(event) => {
+                                        const file = event.target.files?.[0] ?? null;
+                                        event.target.value = '';
+                                        void handleEvidenceChange(file);
+                                    }}
                                 />
 
                                 <button
@@ -1576,9 +1604,14 @@ export default function TicketShow({
                                     onClick={() =>
                                         evidenceInputRef.current?.click()
                                     }
+                                    disabled={isCompressingEvidence}
                                     className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-md border border-gray-300 bg-white text-gray-500 transition hover:border-green-600"
                                 >
-                                    {evidencePreview ? (
+                                    {isCompressingEvidence ? (
+                                        <span className="text-sm">
+                                            Memproses foto...
+                                        </span>
+                                    ) : evidencePreview ? (
                                         <img
                                             src={evidencePreview}
                                             alt="Preview bukti progres"
@@ -1600,6 +1633,11 @@ export default function TicketShow({
                                         {progressForm.errors.evidence}
                                     </p>
                                 )}
+                                {evidenceError && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {evidenceError}
+                                    </p>
+                                )}
                             </div>
 
                         </div>
@@ -1612,6 +1650,7 @@ export default function TicketShow({
                                         false,
                                     )
                                 }
+                                disabled={isCompressingEvidence}
                                 className="rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700"
                             >
                                 Batal
@@ -1620,7 +1659,8 @@ export default function TicketShow({
                             <button
                                 type="submit"
                                 disabled={
-                                    progressForm.processing
+                                    progressForm.processing ||
+                                    isCompressingEvidence
                                 }
                                 className="rounded-xl bg-[#22c55e] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50"
                             >

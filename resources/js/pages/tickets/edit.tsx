@@ -9,12 +9,13 @@ import {
     UsersRound,
     Wrench,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
     show as showTicket,
     update as updateTicket,
 } from '@/actions/App/Http/Controllers/TicketController';
+import { compressImage } from '@/lib/compress-image';
 
 type RepairType =
     | 'machine'
@@ -78,6 +79,10 @@ export default function EditTicket({
     technicians,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isCompressingPhoto, setIsCompressingPhoto] =
+        useState(false);
+    const [photoError, setPhotoError] =
+        useState<string | null>(null);
     const form = useForm<{
         category: RepairType;
         priority: PriorityType;
@@ -109,6 +114,34 @@ export default function EditTicket({
         [form.data.damage_photo],
     );
 
+    const handleDamagePhotoChange = async (
+        file: File | null,
+    ): Promise<void> => {
+        setPhotoError(null);
+
+        if (!file) {
+            form.setData('damage_photo', null);
+
+            return;
+        }
+
+        form.setData('damage_photo', null);
+
+        setIsCompressingPhoto(true);
+
+        try {
+            form.setData('damage_photo', await compressImage(file));
+        } catch (error) {
+            setPhotoError(
+                error instanceof Error
+                    ? error.message
+                    : 'Foto tidak dapat diproses. Silakan coba gambar lain.',
+            );
+        } finally {
+            setIsCompressingPhoto(false);
+        }
+    };
+
     useEffect(() => () => {
         if (imagePreview) {
             URL.revokeObjectURL(imagePreview);
@@ -117,6 +150,10 @@ export default function EditTicket({
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (isCompressingPhoto) {
+            return;
+        }
 
         form.post(updateTicket.url(ticket.id), {
             forceFormData: true,
@@ -492,24 +529,27 @@ export default function EditTicket({
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={(event) =>
-                                    form.setData(
-                                        'damage_photo',
-                                        event.target.files?.[0] ?? null,
-                                    )
-                                }
+                                accept="image/*"
+                                capture="environment"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    event.target.value = '';
+                                    void handleDamagePhotoChange(file);
+                                }}
                                 className="hidden"
                             />
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
+                                disabled={isCompressingPhoto}
                                 className="flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
                             >
                                 <ImageUp size={22} />
-                                {form.data.damage_photo
-                                    ? form.data.damage_photo.name
-                                    : 'Pilih foto baru (opsional)'}
+                                {isCompressingPhoto
+                                    ? 'Memproses foto...'
+                                    : form.data.damage_photo
+                                      ? form.data.damage_photo.name
+                                      : 'Ambil atau pilih foto baru (opsional)'}
                             </button>
                             {preview && (
                                 <img
@@ -521,6 +561,11 @@ export default function EditTicket({
                             {form.errors.damage_photo && (
                                 <p className="mt-1 text-xs text-red-600">
                                     {form.errors.damage_photo}
+                                </p>
+                            )}
+                            {photoError && (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {photoError}
                                 </p>
                             )}
                         </div>
@@ -536,7 +581,7 @@ export default function EditTicket({
                         </button>
                         <button
                             type="submit"
-                            disabled={form.processing}
+                            disabled={form.processing || isCompressingPhoto}
                             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Save size={17} />
