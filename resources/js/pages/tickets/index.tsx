@@ -128,7 +128,9 @@ const statusStyles: Record<TicketStatus, string> = {
 };
 
 const visitTicketUrl = (url: string | null) => {
-    if (!url) return;
+    if (!url) {
+        return;
+    }
 
     const parsed = new URL(url, window.location.origin);
 
@@ -202,11 +204,11 @@ export default function TicketIndex({
         router.get(
             '/tickets',
             {
-                status: nextStatus || undefined,
+                status: nextStatus,
 
-                priority: nextPriority || undefined,
+                priority: nextPriority,
 
-                technician_id: nextTechnician || undefined,
+                technician_id: nextTechnician,
 
                 search: nextSearch || undefined,
 

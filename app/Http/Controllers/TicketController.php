@@ -36,6 +36,25 @@ class TicketController extends Controller
 
     public function index(Request $request): Response
     {
+        $filters = [];
+
+        foreach (['status', 'priority', 'technician_id'] as $filter) {
+            $sessionKey = "tickets.filters.{$filter}";
+
+            if ($request->has($filter)) {
+                $value = $request->input($filter);
+                $filters[$filter] = is_string($value) || is_numeric($value)
+                    ? (string) $value
+                    : '';
+
+                $request->session()->put($sessionKey, $filters[$filter]);
+
+                continue;
+            }
+
+            $filters[$filter] = $request->session()->get($sessionKey, '');
+        }
+
         $userId = Auth::user()->id;
         $tickets = TicketModel::query()
             ->with([
@@ -58,31 +77,31 @@ class TicketController extends Controller
             )
 
             ->when(
-                $request->filled('status'),
+                $filters['status'] !== '',
                 fn ($query) => $query->whereHas(
                     'status',
                     fn ($status) => $status->where(
                         'code',
-                        $request->string('status')
+                        $filters['status']
                     )
                 )
             )
 
             ->when(
-                $request->filled('priority'),
+                $filters['priority'] !== '',
                 fn ($query) => $query->where(
                     'priority',
-                    $request->string('priority')
+                    $filters['priority']
                 )
             )
 
             ->when(
-                $request->filled('technician_id'),
+                $filters['technician_id'] !== '',
                 fn ($query) => $query->whereHas(
                     'technicians',
                     fn ($q) => $q->where(
                         'employee_id',
-                        $request->integer('technician_id')
+                        (int) $filters['technician_id']
                     )
                 )
             )
@@ -184,11 +203,11 @@ class TicketController extends Controller
                 'technicians' => $technicians,
 
                 'filters' => [
-                    'status' => $request->input('status'),
+                    'status' => $filters['status'],
 
-                    'priority' => $request->input('priority'),
+                    'priority' => $filters['priority'],
 
-                    'technician_id' => $request->input('technician_id'),
+                    'technician_id' => $filters['technician_id'],
 
                     'search' => $request->input('search'),
                 ],
