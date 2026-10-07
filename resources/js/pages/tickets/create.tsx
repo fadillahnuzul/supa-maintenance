@@ -4,8 +4,9 @@ import {
     useForm,
 } from '@inertiajs/react';
 import {
+    Camera,
     FileText,
-    ImageUp,
+    Images,
     MapPin,
     Wrench,
     X,
@@ -126,6 +127,8 @@ export default function CreateTicket({
     */
 
     const fileInputRef =
+        useRef<HTMLInputElement>(null);
+    const galleryInputRef =
         useRef<HTMLInputElement>(null);
     const [isCompressingPhoto, setIsCompressingPhoto] =
         useState(false);
@@ -678,8 +681,7 @@ export default function CreateTicket({
 
                         <div className="mt-5">
                             <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-                                Foto Bukti
-                                Kerusakan
+                                Foto Bukti Kerusakan
                             </label>
 
                             <input
@@ -696,70 +698,68 @@ export default function CreateTicket({
                                 }}
                                 className="hidden"
                             />
+                            <input
+                                ref={galleryInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    event.target.value = '';
+                                    void handleFileChange(file);
+                                }}
+                                className="hidden"
+                            />
 
-                            {!imagePreview ? (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        fileInputRef.current?.click()
-                                    }
-                                    disabled={isCompressingPhoto}
-                                    className="flex min-h-[180px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition hover:border-green-500"
-                                >
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-200 text-gray-600">
-                                        <ImageUp
-                                            size={27}
-                                        />
-                                    </div>
-
-                                    <div className="text-center">
-                                        <div className="text-sm font-semibold text-gray-700">
-                                            {isCompressingPhoto
-                                                ? 'Memproses foto...'
-                                                : 'Ambil atau pilih foto'}
-                                        </div>
-
-                                        <div className="mt-1 text-xs text-gray-400">
-                                            JPG,
-                                            PNG,
-                                            WEBP.
-                                            Maks. 5
-                                            MB
-                                        </div>
-                                    </div>
-                                </button>
-                            ) : (
-                                <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-                                    <img
-                                        src={
-                                            imagePreview
-                                        }
-                                        alt="Preview"
-                                        className="h-[260px] w-full object-contain"
-                                    />
-
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="flex flex-col gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            handleFileChange(
-                                                null,
-                                            );
-
-                                            if (
-                                                fileInputRef.current
-                                            ) {
-                                                fileInputRef.current.value =
-                                                    '';
-                                            }
-                                        }}
-                                        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isCompressingPhoto}
+                                        className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
                                     >
-                                        <X
-                                            size={17}
-                                        />
+                                        <Camera size={22} />
+                                        Ambil foto
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => galleryInputRef.current?.click()}
+                                        disabled={isCompressingPhoto}
+                                        className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        <Images size={22} />
+                                        Upload dari galeri
                                     </button>
                                 </div>
-                            )}
+
+                                <div className="relative flex min-h-[208px] w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-400 bg-white text-lg font-medium text-gray-500">
+                                    {isCompressingPhoto ? (
+                                        <span className="text-sm">
+                                            Memproses foto...
+                                        </span>
+                                    ) : imagePreview ? (
+                                        <>
+                                            <img
+                                                src={imagePreview}
+                                                alt="Preview foto kerusakan"
+                                                className="h-[208px] w-full object-contain"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    void handleFileChange(null);
+                                                }}
+                                                aria-label="Hapus foto"
+                                                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white"
+                                            >
+                                                <X size={17} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        'Preview'
+                                    )}
+                                </div>
+                            </div>
 
                             {errors.damage_photo && (
                                 <p className="mt-1 text-xs text-red-600">

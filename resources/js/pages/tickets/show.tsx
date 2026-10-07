@@ -6,6 +6,7 @@ import {
 import {
     ArrowLeft,
     Calendar,
+    Camera,
     CheckCircle2,
     Clock,
     Cog,
@@ -13,7 +14,7 @@ import {
     FileText,
     History,
     ImageIcon,
-    ImageUp,
+    Images,
     MapPin,
     Package,
     Plus,
@@ -220,6 +221,8 @@ export default function TicketShow({
         useState<string | null>(null);
 
     const evidenceInputRef =
+        useRef<HTMLInputElement>(null);
+    const evidenceGalleryInputRef =
         useRef<HTMLInputElement>(null);
 
     const [evidencePreview, setEvidencePreview] =
@@ -1598,29 +1601,60 @@ export default function TicketShow({
                                         void handleEvidenceChange(file);
                                     }}
                                 />
+                                <input
+                                    ref={evidenceGalleryInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(event) => {
+                                        const file = event.target.files?.[0] ?? null;
+                                        event.target.value = '';
+                                        void handleEvidenceChange(file);
+                                    }}
+                                />
 
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        evidenceInputRef.current?.click()
-                                    }
-                                    disabled={isCompressingEvidence}
-                                    className="flex min-h-28 w-full items-center justify-center overflow-hidden rounded-md border border-gray-300 bg-white text-gray-500 transition hover:border-green-600"
-                                >
-                                    {isCompressingEvidence ? (
-                                        <span className="text-sm">
-                                            Memproses foto...
-                                        </span>
-                                    ) : evidencePreview ? (
-                                        <img
-                                            src={evidencePreview}
-                                            alt="Preview bukti progres"
-                                            className="max-h-40 w-full object-contain"
-                                        />
-                                    ) : (
-                                        <ImageUp size={38} />
-                                    )}
-                                </button>
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    <div className="flex flex-col gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                evidenceInputRef.current?.click()
+                                            }
+                                            disabled={isCompressingEvidence}
+                                            className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            <Camera size={22} />
+                                            Ambil foto
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                evidenceGalleryInputRef.current?.click()
+                                            }
+                                            disabled={isCompressingEvidence}
+                                            className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            <Images size={22} />
+                                            Upload dari galeri
+                                        </button>
+                                    </div>
+
+                                    <div className="flex min-h-[208px] w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-400 bg-white text-lg font-medium text-gray-500">
+                                        {isCompressingEvidence ? (
+                                            <span className="text-sm">
+                                                Memproses foto...
+                                            </span>
+                                        ) : evidencePreview ? (
+                                            <img
+                                                src={evidencePreview}
+                                                alt="Preview bukti progres"
+                                                className="h-[208px] w-full object-contain"
+                                            />
+                                        ) : (
+                                            'Preview'
+                                        )}
+                                    </div>
+                                </div>
 
                                 {progressForm.data.evidence && (
                                     <p className="mt-1 text-xs text-gray-500">

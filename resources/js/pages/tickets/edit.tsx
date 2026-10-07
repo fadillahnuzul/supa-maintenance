@@ -1,9 +1,10 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Camera,
     Clock,
     FileText,
-    ImageUp,
+    Images,
     MapPin,
     Save,
     UsersRound,
@@ -79,6 +80,7 @@ export default function EditTicket({
     technicians,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
     const [isCompressingPhoto, setIsCompressingPhoto] =
         useState(false);
     const [photoError, setPhotoError] =
@@ -538,26 +540,55 @@ export default function EditTicket({
                                 }}
                                 className="hidden"
                             />
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isCompressingPhoto}
-                                className="flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
-                            >
-                                <ImageUp size={22} />
-                                {isCompressingPhoto
-                                    ? 'Memproses foto...'
-                                    : form.data.damage_photo
-                                      ? form.data.damage_photo.name
-                                      : 'Ambil atau pilih foto baru (opsional)'}
-                            </button>
-                            {preview && (
-                                <img
-                                    src={preview}
-                                    alt={`Foto tiket ${ticket.code}`}
-                                    className="mt-3 max-h-64 rounded-xl border border-gray-200 object-contain"
-                                />
-                            )}
+                            <input
+                                ref={galleryInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    event.target.value = '';
+                                    void handleDamagePhotoChange(file);
+                                }}
+                                className="hidden"
+                            />
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isCompressingPhoto}
+                                        className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        <Camera size={22} />
+                                        Ambil foto
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => galleryInputRef.current?.click()}
+                                        disabled={isCompressingPhoto}
+                                        className="inline-flex min-h-24 w-full items-center justify-center gap-3 rounded-xl border-2 border-gray-300 bg-white px-4 py-5 text-base font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        <Images size={22} />
+                                        Upload dari galeri
+                                    </button>
+                                </div>
+
+                                <div className="relative flex min-h-[208px] w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-400 bg-white text-lg font-medium text-gray-500">
+                                    {isCompressingPhoto ? (
+                                        <span className="text-sm">
+                                            Memproses foto...
+                                        </span>
+                                    ) : preview ? (
+                                        <img
+                                            src={preview}
+                                            alt={`Preview foto tiket ${ticket.code}`}
+                                            className="h-[208px] w-full object-contain"
+                                        />
+                                    ) : (
+                                        'Preview'
+                                    )}
+                                </div>
+                            </div>
                             {form.errors.damage_photo && (
                                 <p className="mt-1 text-xs text-red-600">
                                     {form.errors.damage_photo}
