@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 
 export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
@@ -157,6 +158,7 @@ export default function Login() {
 
                                     <input
                                         id="username"
+                                        name="username"
                                         type="text"
                                         autoComplete="username"
                                         autoFocus
@@ -222,6 +224,7 @@ export default function Login() {
 
                                     <input
                                         id="password"
+                                        name="password"
                                         type={
                                             showPassword
                                                 ? 'text'
@@ -288,6 +291,23 @@ export default function Login() {
                                     </p>
                                 )}
                             </div>
+
+                            <label
+                                htmlFor="remember"
+                                className="flex cursor-pointer items-center gap-2 text-sm text-gray-600"
+                            >
+                                <input
+                                    id="remember"
+                                    name="remember"
+                                    type="checkbox"
+                                    checked={data.remember}
+                                    onChange={(e) =>
+                                        setData('remember', e.target.checked)
+                                    }
+                                    className="size-4 rounded border-gray-300 text-[#2faa32] focus:ring-green-200"
+                                />
+                                Ingat saya di perangkat ini
+                            </label>
 
                             {/* Button */}
                             <button

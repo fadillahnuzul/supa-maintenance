@@ -34,6 +34,32 @@ test('users can authenticate using either employee number format', function (str
     $response->assertRedirect(route('dashboard', absolute: false));
 })->with(['dotted' => '2604.01.0122', 'plain' => '2604010122']);
 
+test('users can choose to stay authenticated between browser sessions', function () {
+    $user = User::factory()->create(['remember_token' => null]);
+
+    $response = $this->post(route('login.store'), [
+        'username' => $user->id_karyawan,
+        'password' => 'password',
+        'remember' => true,
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->remember_token)->not->toBeNull();
+});
+
+test('users are not remembered when they do not request it', function () {
+    $user = User::factory()->create(['remember_token' => null]);
+
+    $this->post(route('login.store'), [
+        'username' => $user->id_karyawan,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->remember_token)->toBeNull();
+});
+
 test('users with two factor enabled are redirected to two factor challenge', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
