@@ -334,7 +334,7 @@ class TicketController extends Controller
             ],
 
             'damage_photo' => [
-                'nullable',
+                'required',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:5120',
