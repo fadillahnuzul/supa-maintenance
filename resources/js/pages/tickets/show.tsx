@@ -1061,8 +1061,7 @@ export default function TicketShow({
                                             }
                                         />
 
-                                        Update
-                                        Progress
+                                        Update Progress
                                     </button>
                                 )}
 
@@ -1291,6 +1290,11 @@ export default function TicketShow({
                         />
 
                         <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                            <label className="mb-1.5 block text-sm font-semibold text-gray-800">
+                                Detail Kerusakan / Pekerjaan
+                            </label>
+                            <input type="text" name="detail" id="" defaultValue={ticket.detail} disabled className="w-full resize-none rounded-xl border border-green-600 px-4 py-3 text-sm outline-none focus:border-green-600 placeholder:text-gray-500 text-gray-600"/>
+                                    <hr className="my-1 border-gray-500" />
                             {/* STATUS */}
 
                             <label className="mb-1.5 block text-sm font-semibold text-gray-800">
@@ -1371,10 +1375,7 @@ export default function TicketShow({
                                             className="mt-0.5 shrink-0"
                                         />
 
-                                        Pengerjaan akan
-                                        ditandai sedang
-                                        menunggu
-                                        sparepart.
+                                        Pengerjaan akan ditandai sedang menunggu sparepart.
                                     </div>
                                 )}
 
@@ -1389,12 +1390,7 @@ export default function TicketShow({
                                             className="mt-0.5 shrink-0"
                                         />
 
-                                        Pekerjaan belum
-                                        dianggap selesai.
-                                        Tiket akan
-                                        menunggu
-                                        Maintenance
-                                        Verification.
+                                        Pekerjaan belum dianggap selesai. Tiket akan menunggu Maintenance Verification.
                                     </div>
                                 )}
 

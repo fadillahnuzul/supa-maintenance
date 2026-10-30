@@ -309,7 +309,7 @@ class TicketController extends Controller
             'division_id' => [
                 'required',
                 'integer',
-                Rule::exists(
+                 Rule::exists(
                     BuildingModel::class,
                     'id'
                 ),

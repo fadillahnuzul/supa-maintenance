@@ -8,11 +8,13 @@ import {
     FileText,
     Images,
     MapPin,
+    Search,
     Wrench,
     X,
 } from 'lucide-react';
 import {
     useEffect,
+    useId,
     useMemo,
     useRef,
     useState,
@@ -119,6 +121,41 @@ export default function CreateTicket({
         showTypeModal,
         setShowTypeModal,
     ] = useState(true);
+    const [isMachineDropdownOpen, setIsMachineDropdownOpen] =
+        useState(false);
+    const [machineSearch, setMachineSearch] =
+        useState('');
+    const machineDropdownRef =
+        useRef<HTMLDivElement>(null);
+    const machineDropdownId = useId();
+
+    useEffect(() => {
+        const handleOutsideClick = (
+            event: MouseEvent,
+        ) => {
+            if (
+                machineDropdownRef.current &&
+                !machineDropdownRef.current.contains(
+                    event.target as Node,
+                )
+            ) {
+                setIsMachineDropdownOpen(false);
+                setMachineSearch('');
+            }
+        };
+
+        document.addEventListener(
+            'mousedown',
+            handleOutsideClick,
+        );
+
+        return () => {
+            document.removeEventListener(
+                'mousedown',
+                handleOutsideClick,
+            );
+        };
+    }, []);
 
     /*
     |--------------------------------------------------------------------------
@@ -361,6 +398,34 @@ export default function CreateTicket({
                 item.value ===
                 data.category,
         )?.label ?? '-';
+    const selectedMachine =
+        machines.find(
+            (machine) =>
+                String(machine.id) ===
+                data.machine_id,
+        );
+    const selectedMachineLabel =
+        selectedMachine
+            ? selectedMachine.code
+                ? `${selectedMachine.code} - ${selectedMachine.name}`
+                : selectedMachine.name
+            : '';
+    const filteredMachines =
+        machines.filter((machine) => {
+            const query =
+                machineSearch
+                    .trim()
+                    .toLowerCase();
+
+            return (
+                machine.name
+                    .toLowerCase()
+                    .includes(query) ||
+                machine.code
+                    ?.toLowerCase()
+                    .includes(query)
+            );
+        });
 
     /*
     |--------------------------------------------------------------------------
@@ -485,7 +550,10 @@ export default function CreateTicket({
                             {data.category ===
                                 'machine' && (
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                                    <label
+                                        htmlFor={`${machineDropdownId}-input`}
+                                        className="mb-1.5 block text-sm font-semibold text-gray-700"
+                                    >
                                         Unit Mesin
 
                                         <span className="ml-1 text-red-500">
@@ -493,51 +561,120 @@ export default function CreateTicket({
                                         </span>
                                     </label>
 
-                                    <div className="flex items-center gap-3 rounded-xl border border-[#d1d5db] bg-white px-4">
-                                        <Wrench
-                                            size={18}
-                                            className="shrink-0 text-gray-500"
-                                        />
+                                    <div
+                                        ref={machineDropdownRef}
+                                        className="relative"
+                                    >
+                                        <div className="flex items-center gap-3 rounded-xl border border-[#d1d5db] bg-white px-4">
+                                            <Wrench
+                                                size={18}
+                                                className="shrink-0 text-gray-500"
+                                            />
 
-                                        <select
-                                            value={
-                                                data.machine_id
-                                            }
-                                            onChange={(
-                                                event,
-                                            ) =>
-                                                handleMachineChange(
-                                                    event
-                                                        .target
-                                                        .value,
-                                                )
-                                            }
-                                            className="h-[52px] w-full bg-transparent text-sm text-gray-800 outline-none"
-                                        >
-                                            <option value="">
-                                                -- Pilih
-                                                Mesin --
-                                            </option>
+                                            <input
+                                                id={`${machineDropdownId}-input`}
+                                                type="text"
+                                                role="combobox"
+                                                aria-autocomplete="list"
+                                                aria-expanded={
+                                                    isMachineDropdownOpen
+                                                }
+                                                aria-controls={`${machineDropdownId}-listbox`}
+                                                value={
+                                                    isMachineDropdownOpen
+                                                        ? machineSearch
+                                                        : selectedMachineLabel
+                                                }
+                                                onFocus={() => {
+                                                    setMachineSearch('');
+                                                    setIsMachineDropdownOpen(true);
+                                                }}
+                                                onChange={(
+                                                    event,
+                                                ) => {
+                                                    setMachineSearch(
+                                                        event
+                                                            .target
+                                                            .value,
+                                                    );
+                                                    setIsMachineDropdownOpen(true);
+                                                }}
+                                                onKeyDown={(
+                                                    event,
+                                                ) => {
+                                                    if (
+                                                        event.key ===
+                                                        'Escape'
+                                                    ) {
+                                                        setIsMachineDropdownOpen(false);
+                                                        setMachineSearch('');
+                                                    }
+                                                }}
+                                                placeholder="Cari kode atau nama mesin..."
+                                                className="h-[52px] w-full bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
+                                            />
 
-                                            {machines.map(
-                                                (
-                                                    machine,
-                                                ) => (
-                                                    <option
-                                                        key={
-                                                            machine.id
-                                                        }
-                                                        value={
-                                                            machine.id
-                                                        }
-                                                    >
-                                                        {machine.code
-                                                            ? `${machine.code} - ${machine.name}`
-                                                            : machine.name}
-                                                    </option>
-                                                ),
-                                            )}
-                                        </select>
+                                            <Search
+                                                size={18}
+                                                className="shrink-0 text-gray-500"
+                                            />
+                                        </div>
+
+                                        {isMachineDropdownOpen && (
+                                            <div
+                                                id={`${machineDropdownId}-listbox`}
+                                                role="listbox"
+                                                aria-label="Daftar mesin"
+                                                className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                                            >
+                                                {filteredMachines.length >
+                                                0 ? (
+                                                    filteredMachines.map(
+                                                        (
+                                                            machine,
+                                                        ) => (
+                                                            <button
+                                                                key={
+                                                                    machine.id
+                                                                }
+                                                                type="button"
+                                                                role="option"
+                                                                aria-selected={
+                                                                    data.machine_id ===
+                                                                    String(
+                                                                        machine.id,
+                                                                    )
+                                                                }
+                                                                onMouseDown={(
+                                                                    event,
+                                                                ) =>
+                                                                    event.preventDefault()
+                                                                }
+                                                                onClick={() => {
+                                                                    handleMachineChange(
+                                                                        String(
+                                                                            machine.id,
+                                                                        ),
+                                                                    );
+                                                                    setIsMachineDropdownOpen(false);
+                                                                    setMachineSearch('');
+                                                                }}
+                                                                className="w-full px-4 py-2 text-left text-sm text-gray-800 hover:bg-gray-50"
+                                                            >
+                                                                {machine.code
+                                                                    ? `${machine.code} - ${machine.name}`
+                                                                    : machine.name}
+                                                            </button>
+                                                        ),
+                                                    )
+                                                ) : (
+                                                    <p className="px-4 py-2 text-sm text-gray-500">
+                                                        Mesin tidak
+                                                        ditemukan.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {errors.machine_id && (
