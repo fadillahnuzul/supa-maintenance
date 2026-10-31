@@ -63,6 +63,7 @@ type Props = {
     divisions: Division[];
     machines: Machine[];
     technicians: Technician[];
+    canEditTechnicians: boolean;
 };
 
 const repairTypes: { value: RepairType; label: string }[] = [
@@ -78,6 +79,7 @@ export default function EditTicket({
     divisions,
     machines,
     technicians,
+    canEditTechnicians,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -371,45 +373,49 @@ export default function EditTicket({
                                 </p>
                             )}
                         </div>
-
+                        
                         <div className="grid gap-5 md:col-span-2 md:grid-cols-2">
+                            {canEditTechnicians && (
                             <div>
-                                <label
-                                    htmlFor="pic_technician_id"
-                                    className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-800"
-                                >
-                                    <UsersRound size={17} />
-                                    PIC Teknisi
-                                </label>
-                                <select
-                                    id="pic_technician_id"
-                                    value={form.data.pic_technician_id}
-                                    required={
-                                        form.data.additional_technician_ids.length > 0
-                                    }
-                                    onChange={(event) =>
-                                        selectPic(event.target.value)
-                                    }
-                                    className="h-[52px] w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none focus:border-blue-600"
-                                >
-                                    <option value="">-- Belum ditentukan --</option>
-                                    {technicians.map((technician) => (
-                                        <option
-                                            key={technician.id}
-                                            value={technician.id}
+                                    <>
+                                        <label
+                                            htmlFor="pic_technician_id"
+                                            className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-800"
                                         >
-                                            {technician.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <p className="mt-1 text-xs text-gray-500">
-                                    PIC wajib dipilih jika menambahkan teknisi.
-                                </p>
-                                {form.errors.pic_technician_id && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {form.errors.pic_technician_id}
-                                    </p>
-                                )}
+                                            <UsersRound size={17} />
+                                            PIC Teknisi
+                                        </label>
+                                        <select
+                                            id="pic_technician_id"
+                                            value={form.data.pic_technician_id}
+                                            required={
+                                                form.data.additional_technician_ids.length > 0
+                                            }
+                                            onChange={(event) =>
+                                                selectPic(event.target.value)
+                                            }
+                                            className="h-[52px] w-full rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none focus:border-blue-600"
+                                        >
+                                            <option value="">-- Belum ditentukan --</option>
+                                            {technicians.map((technician) => (
+                                                <option
+                                                    key={technician.id}
+                                                    value={technician.id}
+                                                >
+                                                    {technician.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            PIC wajib dipilih jika menambahkan teknisi.
+                                        </p>
+                                        {form.errors.pic_technician_id && (
+                                            <p className="mt-1 text-xs text-red-600">
+                                                {form.errors.pic_technician_id}
+                                            </p>
+                                        )}
+                                    </>
+                                
 
                                 <label
                                     htmlFor="deadline"
@@ -444,58 +450,61 @@ export default function EditTicket({
                                     </p>
                                 )}
                             </div>
+                            )}
 
-                            <div>
-                                <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-800">
-                                    <UsersRound size={17} />
-                                    Teknisi Tambahan
-                                </label>
-                                <div className="min-h-[130px] rounded-xl border border-gray-300 bg-gray-50 p-4">
-                                    {technicians.filter(
-                                        (technician) =>
-                                            String(technician.id) !==
-                                            form.data.pic_technician_id,
-                                    ).length > 0 ? (
-                                        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                                            {technicians
-                                                .filter(
-                                                    (technician) =>
-                                                        String(technician.id) !==
-                                                        form.data.pic_technician_id,
-                                                )
-                                                .map((technician) => (
-                                                    <label
-                                                        key={technician.id}
-                                                        className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={form.data.additional_technician_ids.includes(
-                                                                technician.id,
-                                                            )}
-                                                            onChange={() =>
-                                                                toggleAdditionalTechnician(
+                            {canEditTechnicians && (
+                                <div>
+                                    <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                                        <UsersRound size={17} />
+                                        Teknisi Tambahan
+                                    </label>
+                                    <div className="min-h-[130px] rounded-xl border border-gray-300 bg-gray-50 p-4">
+                                        {technicians.filter(
+                                            (technician) =>
+                                                String(technician.id) !==
+                                                form.data.pic_technician_id,
+                                        ).length > 0 ? (
+                                            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                                                {technicians
+                                                    .filter(
+                                                        (technician) =>
+                                                            String(technician.id) !==
+                                                            form.data.pic_technician_id,
+                                                    )
+                                                    .map((technician) => (
+                                                        <label
+                                                            key={technician.id}
+                                                            className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.data.additional_technician_ids.includes(
                                                                     technician.id,
-                                                                )
-                                                            }
-                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                                                        />
-                                                        {technician.name}
-                                                    </label>
-                                                ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-500">
-                                            Teknisi tambahan belum tersedia.
+                                                                )}
+                                                                onChange={() =>
+                                                                    toggleAdditionalTechnician(
+                                                                        technician.id,
+                                                                    )
+                                                                }
+                                                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                                            />
+                                                            {technician.name}
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-500">
+                                                Teknisi tambahan belum tersedia.
+                                            </p>
+                                        )}
+                                    </div>
+                                    {form.errors.additional_technician_ids && (
+                                        <p className="mt-1 text-xs text-red-600">
+                                            {form.errors.additional_technician_ids}
                                         </p>
                                     )}
                                 </div>
-                                {form.errors.additional_technician_ids && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {form.errors.additional_technician_ids}
-                                    </p>
-                                )}
-                            </div>
+                            )}
                         </div>
 
                         <div className="md:col-span-2">

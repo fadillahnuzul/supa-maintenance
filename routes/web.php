@@ -70,15 +70,20 @@ Route::middleware('auth')->group(function () {
                 '/{ticket:id}/edit',
                 [TicketController::class, 'edit']
             )
-                ->middleware('role:maintenance_approver,maintenance_admin')
+                ->middleware('role:maintenance_approver,maintenance_admin,maintenance_viewer')
                 ->name('edit');
 
             Route::put(
                 '/{ticket:id}',
                 [TicketController::class, 'update']
             )
-                ->middleware('role:maintenance_approver,maintenance_admin')
+                ->middleware('role:maintenance_approver,maintenance_admin,maintenance_viewer')
                 ->name('update');
+
+            Route::delete(
+                '/{ticket:id}',
+                [TicketController::class, 'destroy']
+            )->name('destroy');
 
             Route::get(
                 '/{ticket:id}/approval',

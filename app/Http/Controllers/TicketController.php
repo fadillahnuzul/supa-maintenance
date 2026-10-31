@@ -18,6 +18,7 @@ use App\Models\Ticket\TicketTechnicianModel;
 use App\Models\User;
 use App\Models\UserRoleModel;
 use App\Services\UpdateSparepartLogService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -190,7 +191,10 @@ class TicketController extends Controller
             ->withQueryString();
 
         $tickets->through(
-            fn (TicketModel $ticket) => $this->ticketIndexResource($ticket)
+            fn (TicketModel $ticket) => $this->ticketIndexResource(
+                $ticket,
+                $userId
+            )
         );
 
         $technicians = $this->maintenanceTechnicians();
@@ -225,6 +229,30 @@ class TicketController extends Controller
                 'userId' => $userId,
             ]
         );
+    }
+
+    public function destroy(TicketModel $ticket): RedirectResponse
+    {
+        $userId = (int) Auth::id();
+
+        DB::transaction(function () use ($ticket, $userId): void {
+            $lockedTicket = TicketModel::query()
+                ->with('status')
+                ->lockForUpdate()
+                ->findOrFail($ticket->id);
+
+            abort_unless(
+                $lockedTicket->canBeDeletedBy($userId),
+                403,
+                'Tiket hanya dapat dihapus oleh pembuat saat masih Pending Approval.'
+            );
+
+            $lockedTicket->delete();
+        });
+
+        return redirect()
+            ->route('tickets.index')
+            ->with('success', 'Tiket berhasil dihapus.');
     }
 
     private function statusId(
@@ -309,7 +337,7 @@ class TicketController extends Controller
             'division_id' => [
                 'required',
                 'integer',
-                 Rule::exists(
+                Rule::exists(
                     BuildingModel::class,
                     'id'
                 ),
@@ -416,6 +444,9 @@ class TicketController extends Controller
     public function edit(TicketModel $ticket): Response
     {
         $ticket->load('technicians');
+        $canEditTechnicians = ! $this->currentEmployeeHasRole(
+            'maintenance_viewer'
+        );
 
         $divisions = BuildingModel::query()
             ->select(['id', 'name'])
@@ -452,7 +483,10 @@ class TicketController extends Controller
             ],
             'divisions' => $divisions,
             'machines' => $machines,
-            'technicians' => $this->maintenanceTechnicians(),
+            'technicians' => $canEditTechnicians
+                ? $this->maintenanceTechnicians()
+                : [],
+            'canEditTechnicians' => $canEditTechnicians,
         ]);
     }
 
@@ -552,21 +586,32 @@ class TicketController extends Controller
             }
         }
 
-        $picTechnicianId = isset($validated['pic_technician_id'])
-            ? (int) $validated['pic_technician_id']
-            : null;
+        if ($this->currentEmployeeHasRole('maintenance_viewer')) {
+            $technicianAssignments = $ticket->technicians()
+                ->get(['employee_id', 'role'])
+                ->mapWithKeys(
+                    fn (TicketTechnicianModel $technician): array => [
+                        (int) $technician->employee_id => $technician->role,
+                    ]
+                )
+                ->all();
+        } else {
+            $picTechnicianId = isset($validated['pic_technician_id'])
+                ? (int) $validated['pic_technician_id']
+                : null;
 
-        $technicianAssignments = [];
+            $technicianAssignments = [];
 
-        if ($picTechnicianId !== null) {
-            $technicianAssignments[$picTechnicianId] = 'pic';
-        }
+            if ($picTechnicianId !== null) {
+                $technicianAssignments[$picTechnicianId] = 'pic';
+            }
 
-        foreach ($validated['additional_technician_ids'] ?? [] as $technicianId) {
-            $technicianId = (int) $technicianId;
+            foreach ($validated['additional_technician_ids'] ?? [] as $technicianId) {
+                $technicianId = (int) $technicianId;
 
-            if ($technicianId !== $picTechnicianId) {
-                $technicianAssignments[$technicianId] = 'member';
+                if ($technicianId !== $picTechnicianId) {
+                    $technicianAssignments[$technicianId] = 'member';
+                }
             }
         }
 
@@ -945,6 +990,8 @@ class TicketController extends Controller
                         'maintenance_approver'
                     ) || $this->currentEmployeeHasRole(
                         'maintenance_admin'
+                    ) || ($this->currentEmployeeHasRole(
+                        'maintenance_viewer') && $ticket->status?->code === 'pending_approval'
                     ),
 
                     'update_progress' => $this->canUpdateTicket(
@@ -1690,7 +1737,8 @@ class TicketController extends Controller
     }
 
     private function ticketIndexResource(
-        TicketModel $ticket
+        TicketModel $ticket,
+        int $userId
     ): array {
 
         $pic =
@@ -1747,6 +1795,8 @@ class TicketController extends Controller
             'status_label' => $this->statusLabel(
                 $ticket->status?->code
             ),
+
+            'can_delete' => $ticket->canBeDeletedBy($userId),
 
             'created_at' => optional(
                 $ticket->created_at

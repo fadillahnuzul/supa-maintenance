@@ -1294,7 +1294,7 @@ export default function TicketShow({
                                 Detail Kerusakan / Pekerjaan
                             </label>
                             <input type="text" name="detail" id="" defaultValue={ticket.detail} disabled className="w-full resize-none rounded-xl border border-green-600 px-4 py-3 text-sm outline-none focus:border-green-600 placeholder:text-gray-500 text-gray-600"/>
-                                    <hr className="my-1 border-gray-500" />
+                                    <hr className="my-2 border-gray-500" />
                             {/* STATUS */}
 
                             <label className="mb-1.5 block text-sm font-semibold text-gray-800">

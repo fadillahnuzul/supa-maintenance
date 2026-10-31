@@ -55,6 +55,12 @@ class TicketModel extends Model
         return 'code';
     }
 
+    public function canBeDeletedBy(int $userId): bool
+    {
+        return (int) $this->reporter_id === $userId
+            && $this->status?->code === 'pending_approval';
+    }
+
     public function reporter()
     {
         return $this->belongsTo(

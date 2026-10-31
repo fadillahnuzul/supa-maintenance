@@ -8,9 +8,11 @@ import {
     Plus,
     Search,
     ShieldCheck,
+    Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { destroy as destroyTicket } from '@/actions/App/Http/Controllers/TicketController';
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +52,8 @@ type TicketRow = {
 
     status: TicketStatus;
     status_label: string;
+
+    can_delete: boolean;
 
     created_at: string | null;
 };
@@ -328,6 +332,16 @@ export default function TicketIndex({
         router.visit(`/tickets/${encodeURIComponent(id)}/approval`);
     };
 
+    const deleteTicket = (ticket: TicketRow) => {
+        if (!window.confirm(`Hapus tiket "${ticket.code}"?`)) {
+            return;
+        }
+
+        router.delete(destroyTicket.url(ticket.id), {
+            preserveScroll: true,
+        });
+    };
+
     /*
     |--------------------------------------------------------------------------
     | ACTION BUTTON
@@ -339,18 +353,20 @@ export default function TicketIndex({
          * PENDING APPROVAL
          */
 
-        if (ticket.status === 'pending_approval' && can.approve) {
+        if (ticket.status === 'pending_approval') {
             return (
                 <div className="flex items-center justify-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => openApproval(ticket.id)}
-                        className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
-                        title="Approval"
-                        aria-label="Approval"
-                    >
-                        <Check size={18} />
-                    </button>
+                    {can.approve && (
+                        <button
+                            type="button"
+                            onClick={() => openApproval(ticket.id)}
+                            className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#22c55e] text-white shadow-sm transition hover:bg-[#16a34a]"
+                            title="Approval"
+                            aria-label="Approval"
+                        >
+                            <Check size={18} />
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={() => openShow(ticket.id)}
@@ -360,6 +376,17 @@ export default function TicketIndex({
                     >
                         <Eye size={18} />
                     </button>
+                    {ticket.can_delete && (
+                        <button
+                            type="button"
+                            onClick={() => deleteTicket(ticket)}
+                            className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ef4444] text-white shadow-sm transition hover:bg-[#dc2626]"
+                            title="Hapus Tiket"
+                            aria-label="Hapus Tiket"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    )}
                 </div>
             );
         }

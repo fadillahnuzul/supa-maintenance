@@ -45,7 +45,18 @@ export default function Sidebar({
     const { url } = usePage();
     const { auth } = usePage().props;
     const visibleMenuItems = menuItems.filter((item) => {
-        if (item.href === '/dashboard' || item.href === '/spareparts') {
+        if (item.href === '/dashboard') {
+            return (
+                auth.roles.includes('System Admin') ||
+                auth.roles.includes('Maintenance Supervisor') ||
+                auth.roles.includes('Maintenance Admin') ||
+                auth.roles.includes('Teknisi') ||
+                auth.roles.includes('Operasional') ||
+                auth.roles.includes('Maintenance Verifier')
+            );
+        }
+
+        if (item.href === '/spareparts') {
             return (
                 auth.roles.includes('System Admin') ||
                 auth.roles.includes('Maintenance Supervisor') ||
