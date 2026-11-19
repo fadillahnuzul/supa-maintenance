@@ -13,10 +13,8 @@ import {
     Wrench,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import {
-    repairReport as machineRepairReport,
-    show as machineShow,
-} from '@/actions/App/Http/Controllers/MachineController';
+import { show as machineShow } from '@/actions/App/Http/Controllers/MachineController';
+import { repairReport as machineRepairReport } from '@/routes/machines';
 
 type Location = {
     id: number;

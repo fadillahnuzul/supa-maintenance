@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
-import { repairReport } from '@/actions/App/Http/Controllers/MachineController';
+import { repairReport } from '@/routes/machines';
 
 type ReportTicket = {
     id: number;
