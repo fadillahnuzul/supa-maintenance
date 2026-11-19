@@ -157,3 +157,53 @@
         @apply bg-background text-foreground;
     }
 }
+
+.repair-report-page {
+    page: repair-report;
+}
+
+@page repair-report {
+    size: landscape;
+    margin: 10mm;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .repair-report-page,
+    .repair-report-page * {
+        visibility: visible;
+    }
+
+    .repair-report-page {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        max-width: none;
+        padding: 0;
+    }
+
+    .repair-report-no-print {
+        display: none;
+    }
+
+    .repair-report-print {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .repair-report-table {
+        min-width: 0;
+        font-size: 8pt;
+    }
+
+    .repair-report-table thead {
+        display: table-header-group;
+    }
+
+    .repair-report-table tr {
+        break-inside: avoid;
+    }
+}

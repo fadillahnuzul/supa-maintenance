@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Grid2X2,
+    Eye,
+    FileText,
     List,
     MapPin,
     Pencil,
@@ -11,6 +13,10 @@ import {
     Wrench,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import {
+    repairReport as machineRepairReport,
+    show as machineShow,
+} from '@/actions/App/Http/Controllers/MachineController';
 
 type Location = {
     id: number;
@@ -203,24 +209,13 @@ export default function MachineIndex({
                                     />
                                 )}
                             </button>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    window.print()
-                                }
-                                className="flex h-11 items-center gap-2 rounded-xl bg-[#4f86f7] px-4 font-semibold text-white transition hover:bg-blue-600"
+                            <Link
+                                href={machineRepairReport().url}
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1f6b55] px-4 font-semibold text-white transition hover:bg-[#185443]"
                             >
-                                <Printer
-                                    size={
-                                        18
-                                    }
-                                />
-
-                                <span>
-                                    Print Laporan
-                                </span>
-                            </button>
+                                <FileText size={18} />
+                                <span>Laporan Perbaikan</span>
+                            </Link>
 
                             <Link
                                 href="/machines/create"
@@ -461,6 +456,14 @@ function MachineListView({
                                     <td className="px-3 py-2">
                                         <div className="flex items-center justify-center gap-2">
                                             <Link
+                                                href={machineShow(machine.id).url}
+                                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2faa32] text-white transition hover:bg-[#249428]"
+                                                title="Detail Mesin"
+                                            >
+                                                <Eye size={19} />
+                                            </Link>
+
+                                            <Link
                                                 href={`/machines/${machine.id}/edit`}
                                                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4f86f7] text-white transition hover:bg-blue-600"
                                                 title="Edit Mesin"
@@ -606,6 +609,13 @@ function MachineCardView({
                                         >
                                             Delete
                                         </button>
+
+                                        <Link
+                                            href={machineShow(machine.id).url}
+                                            className="min-w-[90px] rounded-lg bg-[#2faa32] px-4 py-2 text-center font-medium text-white hover:bg-[#249428]"
+                                        >
+                                            Detail
+                                        </Link>
 
                                         <Link
                                             href={`/machines/${machine.id}/edit`}

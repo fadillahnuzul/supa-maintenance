@@ -46,6 +46,11 @@ Route::middleware('auth')->group(function () {
     )
         ->name('spareparts.stock.store');
 
+    Route::get(
+        '/machines/repair-report',
+        [MachineController::class, 'repairReport']
+    )->name('machines.repair-report');
+
     Route::resource('machines', MachineController::class);
 
     Route::prefix('tickets')

@@ -6,17 +6,24 @@ use App\Models\BuildingModel;
 use App\Models\Machine\MachineModel;
 use App\Models\Machine\MachineSpecModel;
 use App\Models\MaterialModel;
+use App\Models\Ticket\TicketModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class MachineController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
-        $machines = MachineModel::with(['location', 'specifications', 'machineMaterials'])->get();
+        MachineModel::syncAllStatusesWithRepairTickets();
+
+        $machines = MachineModel::query()
+            ->withRepairFrequencies()
+            ->with(['location', 'specifications', 'machineMaterials'])
+            ->get();
         $locations = BuildingModel::where('is_active', true)->get();
 
         // $spesifications = MachineSpecModel::all();
@@ -30,6 +37,66 @@ class MachineController extends Controller
                 // 'materials' => $materials
             ]
         );
+    }
+
+    public function show(MachineModel $machine): Response
+    {
+        $machine = MachineModel::query()
+            ->withRepairFrequencies()
+            ->findOrFail($machine->getKey());
+
+        $machine->syncStatusWithRepairTickets();
+
+        $machine->load([
+            'location',
+            'specifications',
+            'machineMaterials.material',
+            'tickets' => fn ($query) => $query->latest('created_at'),
+            'tickets.status:id,code,name',
+            'tickets.spareparts.sparepart',
+        ]);
+
+        return Inertia::render('machines/show', [
+            'machine' => $machine,
+        ]);
+    }
+
+    public function repairReport(Request $request): Response
+    {
+        $validated = validator([
+            'start_date' => $request->query(
+                'start_date',
+                now()->subDays(30)->toDateString()
+            ),
+            'end_date' => $request->query(
+                'end_date',
+                now()->toDateString()
+            ),
+        ], [
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
+
+        $tickets = TicketModel::query()
+            ->where('category', 'machine')
+            ->whereNotNull('machine_id')
+            ->whereBetween('created_at', [
+                Carbon::parse($validated['start_date'])->startOfDay(),
+                Carbon::parse($validated['end_date'])->endOfDay(),
+            ])
+            ->with([
+                'machine.location',
+                'status:id,code,name',
+                'technicians.employee:id,first_name,last_name',
+                'spareparts.sparepart:id,code,name,unit',
+            ])
+            ->orderBy('created_at')
+            ->get();
+
+        return Inertia::render('machines/repair-report', [
+            'tickets' => $tickets,
+            'filters' => $validated,
+        ]);
     }
 
     public function create()
@@ -131,10 +198,10 @@ class MachineController extends Controller
 
         $imageUrls = [
             'photo_url' => $request->hasFile('photo')
-                ? '/storage/' . $request->file('photo')->store('machines', 'public')
+                ? '/storage/'.$request->file('photo')->store('machines', 'public')
                 : null,
             'nameplate_url' => $request->hasFile('nameplate')
-                ? '/storage/' . $request->file('nameplate')->store('machines', 'public')
+                ? '/storage/'.$request->file('nameplate')->store('machines', 'public')
                 : null,
         ];
 
@@ -180,6 +247,7 @@ class MachineController extends Controller
                         'spec_value' => $specification['spec_value'] ?? null,
                     ]);
             }
+
         });
 
         return redirect()
@@ -308,12 +376,12 @@ class MachineController extends Controller
 
         if ($request->hasFile('photo')) {
             $imageUrls['photo_url'] =
-                '/storage/' . $request->file('photo')->store('machines', 'public');
+                '/storage/'.$request->file('photo')->store('machines', 'public');
         }
 
         if ($request->hasFile('nameplate')) {
             $imageUrls['nameplate_url'] =
-                '/storage/' . $request->file('nameplate')->store('machines', 'public');
+                '/storage/'.$request->file('nameplate')->store('machines', 'public');
         }
 
         DB::transaction(function () use (
@@ -373,6 +441,8 @@ class MachineController extends Controller
                         'spec_value' => $specification['spec_value'] ?? null,
                     ]);
             }
+
+            $machine->syncStatusWithRepairTickets();
         });
 
         return redirect()

@@ -248,6 +248,12 @@ class TicketController extends Controller
             );
 
             $lockedTicket->delete();
+
+            $this->syncMachineRepairStatus(
+                $lockedTicket->category === 'machine'
+                    ? (int) $lockedTicket->machine_id
+                    : null
+            );
         });
 
         return redirect()
@@ -422,6 +428,12 @@ class TicketController extends Controller
                     toStatus: 'pending_approval',
                     description: 'Tiket perbaikan diajukan.',
                     employeeId: $employeeId,
+                );
+
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
                 );
 
                 DB::afterCommit(function () use ($ticket) {
@@ -615,11 +627,16 @@ class TicketController extends Controller
             }
         }
 
+        $previousMachineId = $ticket->category === 'machine'
+            ? (int) $ticket->machine_id
+            : null;
+
         $techniciansChanged = DB::transaction(function () use (
             $ticket,
             $validated,
             $photoPath,
-            $technicianAssignments
+            $technicianAssignments,
+            $previousMachineId
         ): bool {
             $ticket->update([
                 'category' => $validated['category'],
@@ -632,6 +649,16 @@ class TicketController extends Controller
                 'damage_photo_url' => $photoPath,
                 'deadline' => $validated['deadline'] ?? null,
             ]);
+
+            $machineId = $ticket->category === 'machine'
+                ? (int) $ticket->machine_id
+                : null;
+
+            if ($previousMachineId !== $machineId) {
+                $this->syncMachineRepairStatus($previousMachineId);
+            }
+
+            $this->syncMachineRepairStatus($machineId);
 
             return $this->syncTicketTechnicians(
                 $ticket,
@@ -815,6 +842,12 @@ class TicketController extends Controller
                     $technicianAssignments
                 );
 
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
+                );
+
                 $this->createLog(
                     ticket: $ticket,
                     action: 'approved',
@@ -912,6 +945,12 @@ class TicketController extends Controller
                     toStatus: 'rejected',
                     description: $validated['reason'],
                     employeeId: $employeeId,
+                );
+
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
                 );
             }
         );
@@ -1191,6 +1230,12 @@ class TicketController extends Controller
                     $employeeId,
                 );
 
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
+                );
+
                 if ($newStatus === 'waiting_verification') {
                     DB::afterCommit(
                         function () use ($ticket) {
@@ -1292,6 +1337,12 @@ class TicketController extends Controller
                     employeeId: $employeeId,
                 );
 
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
+                );
+
                 DB::afterCommit(
                     function () use ($ticket) {
                         event(
@@ -1383,6 +1434,12 @@ class TicketController extends Controller
                     description: $validated['reason'],
                     employeeId: $employeeId,
                 );
+
+                $this->syncMachineRepairStatus(
+                    $ticket->category === 'machine'
+                        ? (int) $ticket->machine_id
+                        : null
+                );
             }
         );
 
@@ -1397,6 +1454,17 @@ class TicketController extends Controller
     | HELPERS
     |--------------------------------------------------------------------------
     */
+
+    private function syncMachineRepairStatus(?int $machineId): void
+    {
+        if ($machineId === null) {
+            return;
+        }
+
+        MachineModel::query()
+            ->findOrFail($machineId)
+            ->syncStatusWithRepairTickets();
+    }
 
     private function createLog(
         TicketModel $ticket,
