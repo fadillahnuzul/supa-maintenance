@@ -41,12 +41,20 @@ type Props = {
     filters: {
         start_date: string;
         end_date: string;
+        machine_id?: string | number | null;
     };
+    machine: {
+        id: number;
+        code: string;
+        name: string;
+        location: string | null;
+    } | null;
 };
 
 export default function MachineRepairReport({
     tickets,
     filters,
+    machine,
 }: Props) {
     return (
         <>
@@ -79,6 +87,13 @@ export default function MachineRepairReport({
                                 className="h-10 rounded-lg border border-gray-300 px-3"
                             />
                         </label>
+                        {machine && (
+                            <input
+                                type="hidden"
+                                name="machine_id"
+                                value={machine.id}
+                            />
+                        )}
                         <button
                             type="submit"
                             className="h-10 rounded-lg bg-gray-800 px-4 font-semibold text-white hover:bg-black"
@@ -101,12 +116,22 @@ export default function MachineRepairReport({
                     <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
                             <h1 className="text-2xl font-extrabold text-gray-900">
-                                Laporan Perbaikan Mesin
+                                {machine
+                                    ? `Laporan Perbaikan Mesin - ${machine.code}`
+                                    : 'Laporan Perbaikan Mesin'}
                             </h1>
                             <p className="text-sm text-gray-600">
                                 Periode request: {formatDate(filters.start_date)} –{' '}
                                 {formatDate(filters.end_date)}
                             </p>
+                            {machine && (
+                                <p className="text-sm text-gray-600">
+                                    Mesin: {machine.name}
+                                    {machine.location
+                                        ? ` · ${machine.location}`
+                                        : ''}
+                                </p>
+                            )}
                         </div>
                         <p className="text-sm font-semibold text-gray-700">
                             Jumlah tiket: {tickets.length}

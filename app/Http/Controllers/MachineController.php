@@ -72,12 +72,24 @@ class MachineController extends Controller
                 'end_date',
                 now()->toDateString()
             ),
+            'machine_id' => $request->query('machine_id'),
         ], [
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'machine_id' => [
+                'nullable',
+                'integer',
+                Rule::exists(MachineModel::class, 'id'),
+            ],
         ])->validate();
 
-        $tickets = TicketModel::query()
+        $machine = isset($validated['machine_id'])
+            ? MachineModel::query()
+                ->with('location:id,name')
+                ->findOrFail($validated['machine_id'])
+            : null;
+
+        $ticketQuery = TicketModel::query()
             ->where('category', 'machine')
             ->whereNotNull('machine_id')
             ->whereBetween('created_at', [
@@ -89,13 +101,25 @@ class MachineController extends Controller
                 'status:id,code,name',
                 'technicians.employee:id,first_name,last_name',
                 'spareparts.sparepart:id,code,name,unit',
-            ])
+            ]);
+
+        if ($machine !== null) {
+            $ticketQuery->where('machine_id', $machine->getKey());
+        }
+
+        $tickets = $ticketQuery
             ->orderBy('created_at')
             ->get();
 
         return Inertia::render('machines/repair-report', [
             'tickets' => $tickets,
             'filters' => $validated,
+            'machine' => $machine === null ? null : [
+                'id' => $machine->id,
+                'code' => $machine->code,
+                'name' => $machine->name,
+                'location' => $machine->location?->name,
+            ],
         ]);
     }
 

@@ -7,7 +7,6 @@ import {
     MapPin,
     Pencil,
     Plus,
-    Printer,
     Search,
     Trash2,
     Wrench,
@@ -93,6 +92,9 @@ export default function MachineIndex({
     const [locationFilter, setLocationFilter] =
         useState('');
 
+    const [machineFilter, setMachineFilter] =
+        useState('');
+
     const [statusFilter, setStatusFilter] =
         useState<MachineStatus | ''>('');
 
@@ -105,6 +107,10 @@ export default function MachineIndex({
                 !locationFilter ||
                 machine.location?.name ===
                     locationFilter;
+
+            const matchesMachine =
+                !machineFilter ||
+                String(machine.id) === machineFilter;
 
             const matchesStatus =
                 !statusFilter ||
@@ -128,6 +134,7 @@ export default function MachineIndex({
 
             return (
                 matchesLocation &&
+                matchesMachine &&
                 matchesStatus &&
                 matchesSearch
             );
@@ -135,6 +142,7 @@ export default function MachineIndex({
     }, [
         machines,
         locationFilter,
+        machineFilter,
         statusFilter,
         search,
     ]);
@@ -208,11 +216,24 @@ export default function MachineIndex({
                                 )}
                             </button>
                             <Link
-                                href={machineRepairReport().url}
+                                href={
+                                    machineFilter
+                                        ? machineRepairReport({
+                                              query: {
+                                                  machine_id:
+                                                      machineFilter,
+                                              },
+                                          }).url
+                                        : machineRepairReport().url
+                                }
                                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1f6b55] px-4 font-semibold text-white transition hover:bg-[#185443]"
                             >
                                 <FileText size={18} />
-                                <span>Laporan Perbaikan</span>
+                                <span>
+                                    {machineFilter
+                                        ? 'Laporan Mesin Terpilih'
+                                        : 'Laporan Semua Mesin'}
+                                </span>
                             </Link>
 
                             <Link
@@ -233,6 +254,22 @@ export default function MachineIndex({
                     </div>
 
                     <div className="mb-2 flex flex-wrap justify-end gap-2">
+                        <select
+                            value={machineFilter}
+                            onChange={(event) =>
+                                setMachineFilter(event.target.value)
+                            }
+                            aria-label="Pilih mesin untuk laporan"
+                            className="h-11 min-w-[220px] rounded-xl border border-[#8b8b8b] bg-white px-4 text-sm text-gray-700 outline-none"
+                        >
+                            <option value="">== Pilih Mesin ==</option>
+                            {machines.map((machine) => (
+                                <option key={machine.id} value={machine.id}>
+                                    {machine.code} - {machine.name}
+                                </option>
+                            ))}
+                        </select>
+
                         <select
                             value={
                                 locationFilter
